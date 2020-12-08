@@ -456,21 +456,4 @@ class VantageLoad {
 		return [service, this.lightBulbService];
 	}
 }
-var config = {
-	ipaddress: '192.168.0.131'
-}
-class Log {
-	info(string) {
-		console.log(string);
-	}
-	debug(string) {
-		console.debug(string);
-	}
-	warn(string) {
-		console.warn(string);
-	}
-}
-var platform = new VantagePlatform(new Log(),config,null);
-platform.getDevices();
-var infusion = new VantageInfusion('192.168.0.131',[],true);
 
