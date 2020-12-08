@@ -249,7 +249,7 @@ class VantagePlatform {
 				var thisItemKey = Object.keys(parsed.Project.Objects.Object[i])[0];
 				var thisItem = parsed.Project.Objects.Object[i][thisItemKey];
 				if (thisItem.ExcludeFromWidgets === undefined || thisItem.ExcludeFromWidgets == "False") {
-					if (thisItem.DeviceCategory == "HVAC") {
+					if (thisItem.ObjectType == "HVAC") {
 						if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
 						this.pendingrequests = this.pendingrequests + 1;
 						this.log(sprintf("New HVAC asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
@@ -266,10 +266,10 @@ class VantagePlatform {
 						});
 
 					}
-					if (thisItem.DeviceCategory == "Lighting") {
-						if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
+					if (thisItem.ObjectType == "Load") {
+						//if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
 						this.pendingrequests = this.pendingrequests + 1;
-						this.log(sprintf("New load asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
+						this.log.info(sprintf("New load asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
 						this.infusion.isInterfaceSupported(thisItem,"Load").then((_response) => {
 							if (_response.support) {
 								if (_response.item.PowerProfile !== undefined) {
@@ -456,3 +456,21 @@ class VantageLoad {
 		return [service, this.lightBulbService];
 	}
 }
+var config = {
+	ipaddress: '192.168.0.131'
+}
+class Log {
+	info(string) {
+		console.log(string);
+	}
+	debug(string) {
+		console.debug(string);
+	}
+	warn(string) {
+		console.warn(string);
+	}
+}
+var platform = new VantagePlatform(new Log(),config,null);
+platform.getDevices();
+var infusion = new VantageInfusion('192.168.0.131',[],true);
+
