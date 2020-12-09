@@ -136,22 +136,23 @@ class VantageInfusion {
 					fs.writeFileSync("/tmp/vantage.dc", xmlconfiguration); /* TODO: create a platform-independent temp file */
 					this.emit("endDownloadConfiguration", xmlconfiguration);
 					configuration.destroy();
+				} else {
+					fs.readFile('/tmp/vantage.dc', 'utf8', function (err, data) {
+						if(!err) {
+							this.emit("endDownloadConfiguration", data);
+						}
+					}.bind(this))
 				}
+
 				buffer = "";
 			});
 
 			/* Aehm, async method becomes sync... */
 			configuration.write("<IIntrospection><GetInterfaces><call></call></GetInterfaces></IIntrospection>\n");
 
-			if (fs.existsSync('/tmp/vantage.dc') && this.usecache) {
-				fs.readFile('/tmp/vantage.dc', 'utf8', function (err, data) {
-					if (!err) {
-						this.emit("endDownloadConfiguration", data);
-					}
-				}.bind(this));
-			} else {
+			if (!fs.existsSync('/tmp/vantage.dc')) {
 				configuration.write("<IBackup><GetFile><call>Backup\\Project.dc</call></GetFile></IBackup>\n");
-			}			
+			}
 		});
 	}
 
@@ -270,24 +271,19 @@ class VantagePlatform {
 						//if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
 						this.pendingrequests = this.pendingrequests + 1;
 						this.log.info(sprintf("New load asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
+						thisItem.Area = this.getAreaName(parsed.Project.Objects.Object, thisItem.Area);
 						this.infusion.isInterfaceSupported(thisItem,"Load").then((_response) => {
 							if (_response.support) {
-								if (_response.item.PowerProfile !== undefined) {
+								var name = sprintf("%s-%s",_response.item.Area, _response.item.Name)
+								if (!_response.item.LoadType.includes("Relay") && !_response.item.LoadType.includes("Motor")) {
 									/* Check if it is a Dimmer or a RGB Load */
-									this.infusion.isInterfaceSupported(_response.item,"RGBLoad").then((_response) => {
-										if (_response.support) {
-											this.log.debug(sprintf("New load added (VID=%s, Name=%s, RGB)", _response.item.Name, _response.item.VID));
-											this.items.push(new VantageLoad(this.log, this, _response.item.Name, _response.item.VID, "rgb"));
-										} else {
-											this.log.debug(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.Name, _response.item.VID));
-											this.items.push(new VantageLoad(this.log, this, _response.item.Name, _response.item.VID, "dimmer"));
-										}
-										this.pendingrequests = this.pendingrequests - 1;
-										this.callbackPromesedAccessoriesDo();
-									});
+									this.log.debug(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.VID, name));
+									this.items.push(new VantageLoad(this.log, this, name, _response.item.VID, "dimmer"));
+									this.pendingrequests = this.pendingrequests - 1;
+									this.callbackPromesedAccessoriesDo();
 								} else {
-									this.log.debug(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.Name, _response.item.VID));
-									this.items.push(new VantageLoad(this.log, this, _response.item.Name, _response.item.VID, "relay"));
+									this.log.debug(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.VID, name));
+									this.items.push(new VantageLoad(this.log, this, name, _response.item.VID, "relay"));
 									this.pendingrequests = this.pendingrequests - 1;
 									this.callbackPromesedAccessoriesDo();
 								}
@@ -338,6 +334,16 @@ class VantagePlatform {
 			this.log.debug("VantagePlatform for InFusion Controller (accessories readed)");
 			callback(devices);
 		});
+	}
+
+	getAreaName(objects, vid) {
+		var result = objects.filter(function(o) {
+			if(o.Area == undefined) return false;
+			var test = o.Area.VID === vid;
+			return test;
+		});
+		if(result === undefined) return "";
+		return result[0].Area.Name;
 	}
 }
 
@@ -457,3 +463,19 @@ class VantageLoad {
 	}
 }
 
+class Logger{
+	debug(string) {
+		console.debug(string);
+	}
+	warn(string) {
+		console.warn(string);
+	}
+	log(string) {
+		console.log(string);
+	}
+	info(string) {
+		console.info(string);
+	}
+}
+// FOR TESTING
+// var processor = new VantagePlatform(new Logger(),{ipaddress: '192.168.0.131'},null)
