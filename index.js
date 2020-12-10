@@ -386,7 +386,7 @@ class VantageLoad {
 	constructor(log, parent, name, vid, type) {
 		this.displayName = name;
 		this.UUID = UUIDGen.generate(vid);
-		this.name = name;
+		this.name = name+vid;
 		this.parent = parent;
 		this.address = vid;
 		this.log = log;
@@ -399,12 +399,12 @@ class VantageLoad {
 
 	getServices() {
 		var service = new Service.AccessoryInformation();
-		service.setCharacteristic(Characteristic.Name, this.name + this.address)
+		service.setCharacteristic(Characteristic.Name, this.name)
 			.setCharacteristic(Characteristic.Manufacturer, "Vantage Controls")
 			.setCharacteristic(Characteristic.Model, "Power Switch")
 			.setCharacteristic(Characteristic.SerialNumber, "VID " + this.address);
 
-		this.lightBulbService = new Service.Lightbulb(this.name + this.address);
+		this.lightBulbService = new Service.Lightbulb(this.name);
 
 		this.lightBulbService.getCharacteristic(Characteristic.On)
 			.on('set', (level, callback) => {
@@ -478,4 +478,4 @@ class Logger{
 	}
 }
 // FOR TESTING
-var processor = new VantagePlatform(new Logger(),{ipaddress: '192.168.0.131'},null);
+// var processor = new VantagePlatform(new Logger(),{ipaddress: '192.168.0.131'},null);
