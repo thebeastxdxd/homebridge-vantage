@@ -341,7 +341,7 @@ class VantagePlatform {
     } else {
       // The returned "services" for this accessory are simply an array of new-API-style
       // Service instances which we can add to a created HAP-NodeJS Accessory directly.
-      const accessoryUUID = uuid.generate(accessoryType + ":" + (uuidBase || displayName));
+      const accessoryUUID = UUIDGen.generate(accessoryType + ":" + (uuidBase || displayName));
       const accessory = new Accessory(displayName, accessoryUUID);
 
       // listen for the identify event if the accessory instance has defined an identify() method
@@ -393,7 +393,7 @@ class VantagePlatform {
 	callbackPromesedAccessoriesDo(accessoryInstance, platformType) {
 		const accessoryName = accessoryInstance.name; // assume this property was set
 
-		const uuidBase = accessoryInstance.uuid_base; // optional base uuid
+		const uuidBase = accessoryInstance.address;
 
 		log.info("Initializing platform accessory '%s'...", accessoryName);
 
