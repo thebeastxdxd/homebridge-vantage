@@ -213,7 +213,7 @@ class VantagePlatform {
 
 				api.registerPlatformAccessories("homebridge-vantage", PLATFORM_NAME, [accessory]);
 			}
-		});
+
 
 		this.log.info("VantagePlatform for InFusion Controller at " + this.ipaddress);
 
@@ -320,6 +320,7 @@ class VantagePlatform {
 			this.ready = true;
 			//this.callbackPromesedAccessoriesDo();
 		});
+	});
 	}
 
 	createHapAccessory(accessoryInstance, displayName, accessoryType, uuidBase) {
