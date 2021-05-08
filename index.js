@@ -409,17 +409,13 @@ class VantagePlatform {
 	}
 
 	configureAccessory(accessory) {
+		
+		accessory.addService(hap.Service.Lightbulb, "Test Light");
+
+		this.api.registerPlatformAccessories("homebridge-vantage", PLATFORM_NAME, [accessory]);
+
 		this.accessories.push(accessory);
 	}
-
-	/* Get accessory list 
-	accessories(callback) {
-		this.getDevices().then((devices) => {
-			this.log.debug("VantagePlatform for InFusion Controller (accessories readed)");
-			callback(devices);
-		});
-	}
-	*/
 
 	getAreaName(objects, vid) {
 		var result = objects.filter(function(o) {
