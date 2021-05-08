@@ -4,6 +4,8 @@ var parser = require('xml2json'), libxmljs = require("libxmljs"), sleep = requir
 var extend = require('extend'), events = require('events'), util = require('util'), fs = require('fs');
 var Accessory, Characteristic, Service, UUIDGen;
 
+const PLATFORM_NAME = "VantageControls";
+
 module.exports = function (homebridge) {
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
@@ -12,7 +14,7 @@ module.exports = function (homebridge) {
 
 	inherits(VantageLoad, Accessory);
 	process.setMaxListeners(0);
-	homebridge.registerPlatform("VantageControls", VantagePlatform);
+	homebridge.registerPlatform(PLATFORM_NAME, VantagePlatform);
 };
 
 class VantageInfusion {
@@ -209,7 +211,7 @@ class VantagePlatform {
 				// create a new accessory
 				const accessory = new this.api.platformAccessory('VantageAccessory', uuid);
 
-				api.registerPlatformAccessories("homebridge-vantage", "VantageControls", [accessory]);
+				api.registerPlatformAccessories("homebridge-vantage", PLATFORM_NAME, [accessory]);
 			}
 		});
 
@@ -269,7 +271,7 @@ class VantagePlatform {
 						this.log(sprintf("New HVAC asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
 						this.infusion.isInterfaceSupported(thisItem,"Thermostat").then((_response) => {
 							if (_response.support) {
-								this.log.debug(sprintf("New HVAC added (VID=%s, Name=%s, THERMOSTAT)", _response.item.Name, _response.item.VID));
+								this.log.info(sprintf("New HVAC added (VID=%s, Name=%s, THERMOSTAT)", _response.item.Name, _response.item.VID));
 								var item = new VantageThermostat(this.log, this, _response.item.Name, _response.item.VID, "thermostat");
 								this.items.push(item);
 								this.pendingrequests = this.pendingrequests - 1;
@@ -291,13 +293,13 @@ class VantagePlatform {
 								var name = sprintf("%s-%s",_response.item.Area, _response.item.Name)
 								if (!_response.item.LoadType.includes("Relay") && !_response.item.LoadType.includes("Motor")) {
 									/* Check if it is a Dimmer or a RGB Load */
-									this.log.debug(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.VID, name));
+									this.log.info(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.VID, name));
 									var item = new VantageLoad(this.log, this, name, _response.item.VID, "dimmer");
 									this.items.push(item);
 									this.pendingrequests = this.pendingrequests - 1;
 									this.callbackPromesedAccessoriesDo(item, "dimmer");
 								} else {
-									this.log.debug(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.VID, name));
+									this.log.info(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.VID, name));
 									var item = new VantageLoad(this.log, this, name, _response.item.VID, "relay");
 									this.items.push(item);
 									this.pendingrequests = this.pendingrequests - 1;
@@ -395,9 +397,12 @@ class VantagePlatform {
 
 		const uuidBase = accessoryInstance.address;
 
-		log.info("Initializing platform accessory '%s'...", accessoryName);
+		this.log.warn("Initializing platform accessory '%s'...", accessoryName);
+
 
 		const accessory = this.createHAPAccessory(accessoryInstance, accessoryName, platformType, uuidBase);
+		api.registerPlatformAccessories("homebridge-vantage", PLATFORM_NAME, [accessory]);
+
 	}
 
 	getDevices() {
