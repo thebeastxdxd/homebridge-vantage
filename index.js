@@ -12,7 +12,7 @@ module.exports = function (homebridge) {
 
 	inherits(VantageLoad, Accessory);
 	process.setMaxListeners(0);
-	homebridge.registerPlatform("homebridge-vantage", "VantageControls", VantagePlatform);
+	homebridge.registerPlatform("VantageControls", VantagePlatform);
 };
 
 class VantageInfusion {
@@ -193,12 +193,25 @@ class VantagePlatform {
 		this.ipaddress = config.ipaddress;
 		this.lastDiscovery = null;
 		this.items = [];
+		this.accessories  = [];
 		this.infusion = new VantageInfusion(config.ipaddress, this.items, false);
 		this.infusion.Discover();
 		this.pendingrequests = 0;
 		this.ready = false;
 		this.callbackPromesedAccessories = undefined;
 		this.getAccessoryCallback = null;
+
+		api.on('didFinishLaunching', () => {
+			const uuid = UUIDGen.generate('8581');
+
+			if (!this.accessories.find(accessory => accessory.UUID == uuid)) {
+
+				// create a new accessory
+				const accessory = new this.api.platformAccessory('VantageAccessory', uuid);
+
+				api.registerPlatformAccessories("homebridge-vantage", "VantageControls", [accessory]);
+			}
+		});
 
 		this.log.info("VantagePlatform for InFusion Controller at " + this.ipaddress);
 
@@ -257,12 +270,13 @@ class VantagePlatform {
 						this.infusion.isInterfaceSupported(thisItem,"Thermostat").then((_response) => {
 							if (_response.support) {
 								this.log.debug(sprintf("New HVAC added (VID=%s, Name=%s, THERMOSTAT)", _response.item.Name, _response.item.VID));
-								this.items.push(new VantageThermostat(this.log, this, _response.item.Name, _response.item.VID, "thermostat"));
+								var item = new VantageThermostat(this.log, this, _response.item.Name, _response.item.VID, "thermostat");
+								this.items.push(item);
 								this.pendingrequests = this.pendingrequests - 1;
-								this.callbackPromesedAccessoriesDo();
+								this.callbackPromesedAccessoriesDo(item, "thermostat");
 							} else {
 								this.pendingrequests = this.pendingrequests - 1;
-								this.callbackPromesedAccessoriesDo();
+								//this.callbackPromesedAccessoriesDo();
 							}
 						});
 
@@ -278,21 +292,23 @@ class VantagePlatform {
 								if (!_response.item.LoadType.includes("Relay") && !_response.item.LoadType.includes("Motor")) {
 									/* Check if it is a Dimmer or a RGB Load */
 									this.log.debug(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.VID, name));
-									this.items.push(new VantageLoad(this.log, this, name, _response.item.VID, "dimmer"));
+									var item = new VantageLoad(this.log, this, name, _response.item.VID, "dimmer");
+									this.items.push(item);
 									this.pendingrequests = this.pendingrequests - 1;
-									this.callbackPromesedAccessoriesDo();
+									this.callbackPromesedAccessoriesDo(item, "dimmer");
 								} else {
 									this.log.debug(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.VID, name));
-									this.items.push(new VantageLoad(this.log, this, name, _response.item.VID, "relay"));
+									var item = new VantageLoad(this.log, this, name, _response.item.VID, "relay");
+									this.items.push(item);
 									this.pendingrequests = this.pendingrequests - 1;
-									this.callbackPromesedAccessoriesDo();
+									this.callbackPromesedAccessoriesDo(item, "relay");
 								}
 							} else {
 								/**
 								 * This is not a valid load
 								 */
 								this.pendingrequests = this.pendingrequests - 1;
-								this.callbackPromesedAccessoriesDo();
+								//this.callbackPromesedAccessoriesDo();
 							}
 						});
 					}
@@ -300,21 +316,88 @@ class VantagePlatform {
 			}
 			this.log.warn("VantagePlatform for InFusion Controller (end configuration store)");
 			this.ready = true;
-			this.callbackPromesedAccessoriesDo();
+			//this.callbackPromesedAccessoriesDo();
 		});
+	}
+
+	createHapAccessory(accessoryInstance, displayName, accessoryType, uuidBase) {
+		 const services = (accessoryInstance.getServices() || [])
+      .filter(service => !!service); // filter out undefined values; a common mistake
+    const controllers = (accessoryInstance.getControllers && accessoryInstance.getControllers() || [])
+      .filter(controller => !!controller);
+
+    if (services.length === 0 && controllers.length === 0) { // check that we only add valid accessory with at least one service
+      return undefined;
+    }
+
+    if (!(services[0] instanceof Service)) {
+      // The returned "services" for this accessory is assumed to be the old style: a big array
+      // of JSON-style objects that will need to be parsed by HAP-NodeJS's AccessoryLoader.
+
+      return AccessoryLoader.parseAccessoryJSON({ // Create the actual HAP-NodeJS "Accessory" instance
+        displayName: displayName,
+        services: services,
+      });
+    } else {
+      // The returned "services" for this accessory are simply an array of new-API-style
+      // Service instances which we can add to a created HAP-NodeJS Accessory directly.
+      const accessoryUUID = uuid.generate(accessoryType + ":" + (uuidBase || displayName));
+      const accessory = new Accessory(displayName, accessoryUUID);
+
+      // listen for the identify event if the accessory instance has defined an identify() method
+      if (accessoryInstance.identify) {
+        accessory.on(AccessoryEventTypes.IDENTIFY, (paired, callback) => {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+          accessoryInstance.identify(() => { }); // empty callback for backwards compatibility
+          callback();
+        });
+      }
+
+      const informationService = accessory.getService(Service.AccessoryInformation);
+      services.forEach(service => {
+        // if you returned an AccessoryInformation service, merge its values with ours
+        if (service instanceof Service.AccessoryInformation) {
+          service.setCharacteristic(Characteristic.Name, displayName); // ensure display name is set
+          // ensure the plugin has not hooked already some listeners (some weird ones do).
+          // Otherwise they would override our identify listener registered by the HAP-NodeJS accessory
+          service.getCharacteristic(Characteristic.Identify).removeAllListeners(CharacteristicEventTypes.SET);
+
+          // pull out any values and listeners (get and set) you may have defined
+          informationService.replaceCharacteristicsFromService(service);
+        } else {
+          accessory.addService(service);
+        }
+      });
+
+      if (informationService.getCharacteristic(Characteristic.FirmwareRevision).value === "0.0.0") {
+        // overwrite the default value with the actual plugin version
+        informationService.setCharacteristic(Characteristic.FirmwareRevision, "1.0");
+      }
+
+      //accessory.on(AccessoryEventTypes.CHARACTERISTIC_WARNING, BridgeService.printCharacteristicWriteWarning.bind(this, plugin, accessory, {}));
+
+      controllers.forEach(controller => {
+        accessory.configureController(controller);
+      });
+
+      return accessory;
+    }
 	}
 
 	/**
 	 * Called once, returns the list of accessories only
 	 * when the list is complete
 	 */
-	callbackPromesedAccessoriesDo() {
-		if (this.callbackPromesedAccessories !== undefined && this.ready && this.pendingrequests == 0) {
-			this.log.warn("VantagePlatform for InFusion Controller (is open for business)");
-			this.callbackPromesedAccessories(this.items);
-		} else {
-			this.log.debug(sprintf("VantagePlatform for InFusion Controller (%s,%s)",this.ready,this.pendingrequests));			
-		}
+	callbackPromesedAccessoriesDo(accessoryInstance, platformType) {
+		const accessoryName = accessoryInstance.name; // assume this property was set
+
+		const uuidBase = accessoryInstance.uuid_base; // optional base uuid
+
+		log.info("Initializing platform accessory '%s'...", accessoryName);
+
+		const accessory = this.createHAPAccessory(accessoryInstance, accessoryName, platformType, uuidBase);
 	}
 
 	getDevices() {
@@ -328,13 +411,18 @@ class VantagePlatform {
 		});
 	}
 
-	/* Get accessory list */
+	configureAccessory(accessory) {
+		this.accessories.push(accessory);
+	}
+
+	/* Get accessory list 
 	accessories(callback) {
 		this.getDevices().then((devices) => {
 			this.log.debug("VantagePlatform for InFusion Controller (accessories readed)");
 			callback(devices);
 		});
 	}
+	*/
 
 	getAreaName(objects, vid) {
 		var result = objects.filter(function(o) {
