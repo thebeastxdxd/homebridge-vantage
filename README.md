@@ -1,3 +1,4 @@
+# THIS IS A TEST PLUGIN! DONT USE!
 # VantagePlugin
 VantageControls InFusion plugin for homebridge: https://github.com/nfarina/homebridge
 

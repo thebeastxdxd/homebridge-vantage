@@ -4,6 +4,7 @@ var parser = require('xml2json'), libxmljs = require("libxmljs"), sleep = requir
 var extend = require('extend'), events = require('events'), util = require('util'), fs = require('fs');
 var Accessory, Characteristic, Service, UUIDGen;
 
+const PLUGIN_NAME = "homebridge-vantage-dym";
 const PLATFORM_NAME = "VantageControls";
 
 module.exports = function (homebridge) {
@@ -12,8 +13,6 @@ module.exports = function (homebridge) {
 	Accessory = homebridge.platformAccessory;
 	UUIDGen = homebridge.hap.uuid;
 
-	inherits(VantageLoad, Accessory);
-	process.setMaxListeners(0);
 	homebridge.registerPlatform(PLATFORM_NAME, VantagePlatform);
 };
 
@@ -207,110 +206,25 @@ class VantagePlatform {
 
 
 			this.log.info("VantagePlatform for InFusion Controller at " + this.ipaddress);
+			const uuid = api.hap.uuid.generate('SOMETHING UNIQUE');
 
-			this.infusion.on('loadStatusChange', (vid,value) => {
-				this.items.forEach(function (accessory) {
-					if (accessory.address == vid) {
-						this.log.debug(sprintf("loadStatusChange (VID=%s, Name=%s, Bri:%d)", vid,accessory.name, value));
-						accessory.bri = parseInt(value);
-						accessory.power = ((accessory.bri) > 0);
-						if (accessory.lightBulbService !== undefined) {
-							/* Is it ready? */
-							accessory.lightBulbService.getCharacteristic(Characteristic.On).getValue(null, accessory.power);
-							if (accessory.type == "rgb" || accessory.type == "dimmer") {
-								accessory.lightBulbService.getCharacteristic(Characteristic.Brightness).getValue(null, accessory.bri);
-							}
-						}
-					}
-				}.bind(this));
-			});
+			// check the accessory was not restored from cache
+			if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
+	  
+			  // create a new accessory
+			  const accessory = new this.api.platformAccessory('DISPLAY NAME', uuid);
+			  accessory.addService(Service.Lightbulb, "Test Light");
+			  accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On)
+			  .on("set", (value, callback) => {
+				this.log.info("%s Light was set to: " + value);
+				callback();
+			  });
 
-			this.infusion.on('thermostatOutdoorTemperatureChange', (vid,value) => {
-				this.items.forEach(function (accessory) {
-					if (accessory.address == vid) {
-						accessory.temperature = parseFloat(value);
-						if (accessory.thermostatService !== undefined) {
-							/* Is it ready? */
-							accessory.thermostatService.getCharacteristic(Characteristic.CurrentTemperature).getValue(null, accessory.temperature);
-						}
-					}
-				}.bind(this));
-			});		
-
-			this.infusion.on('thermostatIndoorTemperatureChange', (vid,value) => {
-				this.items.forEach(function (accessory) {
-					if (accessory.address == vid) {
-						accessory.temperature = parseFloat(value);
-						if (accessory.thermostatService !== undefined) {
-							/* Is it ready? */
-							accessory.thermostatService.getCharacteristic(Characteristic.CurrentTemperature).getValue(null, accessory.temperature);
-						}
-					}
-				}.bind(this));
-			});	
-
-			this.infusion.on('endDownloadConfiguration', (configuration) => {
-				this.log.debug("VantagePlatform for InFusion Controller (end configuration download)");
-				var parsed = JSON.parse(parser.toJson(configuration));
-				for (var i = 0; i < parsed.Project.Objects.Object.length; i++) {
-					var thisItemKey = Object.keys(parsed.Project.Objects.Object[i])[0];
-					var thisItem = parsed.Project.Objects.Object[i][thisItemKey];
-					if (thisItem.ExcludeFromWidgets === undefined || thisItem.ExcludeFromWidgets == "False") {
-						if (thisItem.ObjectType == "HVAC") {
-							if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
-							this.pendingrequests = this.pendingrequests + 1;
-							this.log(sprintf("New HVAC asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
-							this.infusion.isInterfaceSupported(thisItem,"Thermostat").then((_response) => {
-								if (_response.support) {
-									this.log.info(sprintf("New HVAC added (VID=%s, Name=%s, THERMOSTAT)", _response.item.Name, _response.item.VID));
-									var item = new VantageThermostat(this.log, this, _response.item.Name, _response.item.VID, "thermostat");
-									this.items.push(item);
-									this.pendingrequests = this.pendingrequests - 1;
-									this.callbackPromesedAccessoriesDo(item, "thermostat");
-								} else {
-									this.pendingrequests = this.pendingrequests - 1;
-									//this.callbackPromesedAccessoriesDo();
-								}
-							});
-
-						}
-						if (thisItem.ObjectType == "Load") {
-							//if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
-							this.pendingrequests = this.pendingrequests + 1;
-							this.log.info(sprintf("New load asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
-							thisItem.Area = this.getAreaName(parsed.Project.Objects.Object, thisItem.Area);
-							this.infusion.isInterfaceSupported(thisItem,"Load").then((_response) => {
-								if (_response.support) {
-									var name = sprintf("%s-%s",_response.item.Area, _response.item.Name)
-									if (!_response.item.LoadType.includes("Relay") && !_response.item.LoadType.includes("Motor")) {
-										/* Check if it is a Dimmer or a RGB Load */
-										this.log.info(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.VID, name));
-										var item = new VantageLoad(this.log, this, name, _response.item.VID, "dimmer");
-										this.items.push(item);
-										this.pendingrequests = this.pendingrequests - 1;
-										this.callbackPromesedAccessoriesDo(item, "dimmer");
-									} else {
-										this.log.info(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.VID, name));
-										var item = new VantageLoad(this.log, this, name, _response.item.VID, "relay");
-										this.items.push(item);
-										this.pendingrequests = this.pendingrequests - 1;
-										this.callbackPromesedAccessoriesDo(item, "relay");
-									}
-								} else {
-									/**
-									 * This is not a valid load
-									 */
-									this.pendingrequests = this.pendingrequests - 1;
-									//this.callbackPromesedAccessoriesDo();
-								}
-							});
-						}
-					}
-				}
-				this.log.warn("VantagePlatform for InFusion Controller (end configuration store)");
-				this.ready = true;
-				//this.callbackPromesedAccessoriesDo();
-			});
+			this.log.info("registering accessory");
+			  // register the accessory
+			  api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+			}
+	
 	});
 	}
 
@@ -380,10 +294,7 @@ class VantagePlatform {
     }
 	}
 
-	/**
-	 * Called once, returns the list of accessories only
-	 * when the list is complete
-	 */
+
 	callbackPromesedAccessoriesDo(accessoryInstance, platformType) {
 		const accessoryName = accessoryInstance.name; // assume this property was set
 
@@ -393,26 +304,17 @@ class VantagePlatform {
 
 
 		const accessory = this.createHAPAccessory(accessoryInstance, accessoryName, platformType, uuidBase);
-		api.registerPlatformAccessories("homebridge-vantage", PLATFORM_NAME, [accessory]);
+		api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
 
 	}
 
-	getDevices() {
-		return new Promise((resolve, reject) => {
-			if (!this.ready) {
-				this.log.debug("VantagePlatform for InFusion Controller (wait for getDevices promise)");
-				this.callbackPromesedAccessories = resolve;
-			} else {
-				resolve(this.items);
-			}
-		});
-	}
 
 	configureAccessory(accessory) {
 		
-		accessory.addService(hap.Service.Lightbulb, "Test Light");
+		accessory.addService(Service.Lightbulb, "Test Light");
+		this.log.warn("configuring accessory");
 
-		this.api.registerPlatformAccessories("homebridge-vantage", PLATFORM_NAME, [accessory]);
+		this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
 
 		this.accessories.push(accessory);
 	}
