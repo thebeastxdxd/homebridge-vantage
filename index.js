@@ -7,6 +7,7 @@ var Accessory, Characteristic, Service, UUIDGen;
 const PLUGIN_NAME = "homebridge-vantage-dym";
 const PLATFORM_NAME = "VantageControls";
 
+
 module.exports = function (homebridge) {
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
@@ -206,111 +207,130 @@ class VantagePlatform {
 
 
 			this.log.info("VantagePlatform for InFusion Controller at " + this.ipaddress);
-			const uuid = api.hap.uuid.generate('SOMETHING UNIQUE');
-
-			// check the accessory was not restored from cache
-			if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
-	  
-			  // create a new accessory
-			  const accessory = new this.api.platformAccessory('DISPLAY NAME', uuid);
-			  accessory.addService(Service.Lightbulb, "Test Light");
-			  accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On)
-			  .on("set", (value, callback) => {
-				this.log.info("%s Light was set to: " + value);
-				callback();
-			  });
-
-			this.log.info("registering accessory");
-			  // register the accessory
-			  api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-			}
 	
-	});
+			this.infusion.on('loadStatusChange', (vid,value) => {
+				this.items.forEach(function (accessory) {
+					if (accessory.address == vid) {
+						this.log.debug(sprintf("loadStatusChange (VID=%s, Name=%s, Bri:%d)", vid,accessory.name, value));
+						accessory.bri = parseInt(value);
+						accessory.power = ((accessory.bri) > 0);
+						if (accessory.lightBulbService !== undefined) {
+							/* Is it ready? */
+							accessory.lightBulbService.getCharacteristic(Characteristic.On).getValue(null, accessory.power);
+							if (accessory.type == "rgb" || accessory.type == "dimmer") {
+								accessory.lightBulbService.getCharacteristic(Characteristic.Brightness).getValue(null, accessory.bri);
+							}
+						}
+					}
+				}.bind(this));
+			});
+
+			this.infusion.on('thermostatOutdoorTemperatureChange', (vid,value) => {
+				this.items.forEach(function (accessory) {
+					if (accessory.address == vid) {
+						accessory.temperature = parseFloat(value);
+						if (accessory.thermostatService !== undefined) {
+							/* Is it ready? */
+							accessory.thermostatService.getCharacteristic(Characteristic.CurrentTemperature).getValue(null, accessory.temperature);
+						}
+					}
+				}.bind(this));
+			});		
+
+			this.infusion.on('thermostatIndoorTemperatureChange', (vid,value) => {
+				this.items.forEach(function (accessory) {
+					if (accessory.address == vid) {
+						accessory.temperature = parseFloat(value);
+						if (accessory.thermostatService !== undefined) {
+							/* Is it ready? */
+							accessory.thermostatService.getCharacteristic(Characteristic.CurrentTemperature).getValue(null, accessory.temperature);
+						}
+					}
+				}.bind(this));
+			});	
+			
+			this.infusion.on('endDownloadConfiguration', (configuration) => {
+				this.log.debug("VantagePlatform for InFusion Controller (end configuration download)");
+				var parsed = JSON.parse(parser.toJson(configuration));
+				for (var i = 0; i < parsed.Project.Objects.Object.length; i++) {
+					var thisItemKey = Object.keys(parsed.Project.Objects.Object[i])[0];
+					var thisItem = parsed.Project.Objects.Object[i][thisItemKey];
+					if (thisItem.ExcludeFromWidgets === undefined || thisItem.ExcludeFromWidgets == "False") {
+						if (thisItem.ObjectType == "HVAC") {
+							if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
+							this.pendingrequests = this.pendingrequests + 1;
+							this.log(sprintf("New HVAC asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
+							this.infusion.isInterfaceSupported(thisItem,"Thermostat").then((_response) => {
+								if (_response.support) {
+									this.log.info(sprintf("New HVAC added (VID=%s, Name=%s, THERMOSTAT)", _response.item.Name, _response.item.VID));
+									var item = new VantageThermostat(this.log, this, _response.item.Name, _response.item.VID, "thermostat");
+									this.items.push(item);
+									this.pendingrequests = this.pendingrequests - 1;
+									this.callbackPromesedAccessoriesDo(item, "thermostat");
+								} else {
+									this.pendingrequests = this.pendingrequests - 1;
+									//this.callbackPromesedAccessoriesDo();
+								}
+							});
+
+						}
+						if (thisItem.ObjectType == "Load") {
+							//if (thisItem.DName !== undefined && thisItem.DName != "") thisItem.Name = thisItem.DName;
+							this.pendingrequests = this.pendingrequests + 1;
+							this.log.info(sprintf("New load asked (VID=%s, Name=%s, ---)", thisItem.VID, thisItem.Name));
+							thisItem.Area = this.getAreaName(parsed.Project.Objects.Object, thisItem.Area);
+							this.infusion.isInterfaceSupported(thisItem,"Load").then((_response) => {
+								if (_response.support) {
+									var name = sprintf("%s-%s",_response.item.Area, _response.item.Name)
+									if (!_response.item.LoadType.includes("Relay") && !_response.item.LoadType.includes("Motor")) {
+										/* Check if it is a Dimmer or a RGB Load */
+										this.log.info(sprintf("New load added (VID=%s, Name=%s, DIMMER)", _response.item.VID, name));
+										var item = new VantageLoad(this.log, this, name, _response.item.VID, "dimmer");
+										this.items.push(item);
+										this.pendingrequests = this.pendingrequests - 1;
+										this.callbackPromesedAccessoriesDo(item, "dimmer");
+									} else {
+										this.log.info(sprintf("New load added (VID=%s, Name=%s, RELAY)", _response.item.VID, name));
+										var item = new VantageLoad(this.log, this, name, _response.item.VID, "relay");
+										this.items.push(item);
+										this.pendingrequests = this.pendingrequests - 1;
+										this.callbackPromesedAccessoriesDo(item, "relay");
+									}
+								} else {
+									/**
+									 * This is not a valid load
+									 */
+									this.pendingrequests = this.pendingrequests - 1;
+									//this.callbackPromesedAccessoriesDo();
+								}
+							});
+						}
+					}
+				}
+				this.log.warn("VantagePlatform for InFusion Controller (end configuration store)");
+				this.ready = true;
+			});
+		});
 	}
 
-	createHapAccessory(accessoryInstance, displayName, accessoryType, uuidBase) {
-		 const services = (accessoryInstance.getServices() || [])
-      .filter(service => !!service); // filter out undefined values; a common mistake
-    const controllers = (accessoryInstance.getControllers && accessoryInstance.getControllers() || [])
-      .filter(controller => !!controller);
+	callbackPromesedAccessoriesDo(vantageItemInstance, accessoryType) {
+		const accessoryName = vantageItemInstance.name; // assume this property was set
 
-    if (services.length === 0 && controllers.length === 0) { // check that we only add valid accessory with at least one service
-      return undefined;
-    }
+		const uuidBase = vantageItemInstance.address;
 
-    if (!(services[0] instanceof Service)) {
-      // The returned "services" for this accessory is assumed to be the old style: a big array
-      // of JSON-style objects that will need to be parsed by HAP-NodeJS's AccessoryLoader.
+		this.log.warn("Initializing platform accessory '%s'", accessoryName);
+		const accessoryUUID = UUIDGen.generate(accessoryType + ":" + (uuidBase || accessoryName));
+		const accessory = new this.api.platformAccessory(accessoryName, accessoryUUID);
+		vantageItemInstance.setAccessory(accessory);
+		vantageItemInstance.addAccessoryServices();
 
-      return AccessoryLoader.parseAccessoryJSON({ // Create the actual HAP-NodeJS "Accessory" instance
-        displayName: displayName,
-        services: services,
-      });
-    } else {
-      // The returned "services" for this accessory are simply an array of new-API-style
-      // Service instances which we can add to a created HAP-NodeJS Accessory directly.
-      const accessoryUUID = UUIDGen.generate(accessoryType + ":" + (uuidBase || displayName));
-      const accessory = new Accessory(displayName, accessoryUUID);
-
-      // listen for the identify event if the accessory instance has defined an identify() method
-      if (accessoryInstance.identify) {
-        accessory.on(AccessoryEventTypes.IDENTIFY, (paired, callback) => {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          accessoryInstance.identify(() => { }); // empty callback for backwards compatibility
-          callback();
-        });
-      }
-
-      const informationService = accessory.getService(Service.AccessoryInformation);
-      services.forEach(service => {
-        // if you returned an AccessoryInformation service, merge its values with ours
-        if (service instanceof Service.AccessoryInformation) {
-          service.setCharacteristic(Characteristic.Name, displayName); // ensure display name is set
-          // ensure the plugin has not hooked already some listeners (some weird ones do).
-          // Otherwise they would override our identify listener registered by the HAP-NodeJS accessory
-          service.getCharacteristic(Characteristic.Identify).removeAllListeners(CharacteristicEventTypes.SET);
-
-          // pull out any values and listeners (get and set) you may have defined
-          informationService.replaceCharacteristicsFromService(service);
-        } else {
-          accessory.addService(service);
-        }
-      });
-
-      if (informationService.getCharacteristic(Characteristic.FirmwareRevision).value === "0.0.0") {
-        // overwrite the default value with the actual plugin version
-        informationService.setCharacteristic(Characteristic.FirmwareRevision, "1.0");
-      }
-
-      //accessory.on(AccessoryEventTypes.CHARACTERISTIC_WARNING, BridgeService.printCharacteristicWriteWarning.bind(this, plugin, accessory, {}));
-
-      controllers.forEach(controller => {
-        accessory.configureController(controller);
-      });
-
-      return accessory;
-    }
-	}
-
-
-	callbackPromesedAccessoriesDo(accessoryInstance, platformType) {
-		const accessoryName = accessoryInstance.name; // assume this property was set
-
-		const uuidBase = accessoryInstance.address;
-
-		this.log.warn("Initializing platform accessory '%s'...", accessoryName);
-
-
-		const accessory = this.createHAPAccessory(accessoryInstance, accessoryName, platformType, uuidBase);
-		api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+		this.log.warn("Registering platform accessory '%s'...", accessoryName);
+		this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [vantageItemInstance.getAccessory()]);
 
 	}
-
 
 	configureAccessory(accessory) {
-		
+		// not actually implemented
 		accessory.addService(Service.Lightbulb, "Test Light");
 		this.log.warn("configuring accessory");
 
@@ -342,28 +362,41 @@ class VantageThermostat {
 		this.heating = 0;
 		this.cooling = 0;
 		this.type = type;
+		this.accessory = undefined;
+	}
+	getAccessory(){
+		return this.accessory;
 	}
 
+	setAccessory(accessory) {
+		this.accessory = accessory;
+	}
 
-	getServices() {
-		var service = new Service.AccessoryInformation();
-		service.setCharacteristic(Characteristic.Name, this.name)
-			.setCharacteristic(Characteristic.Manufacturer, "Vantage Controls")
-			.setCharacteristic(Characteristic.Model, "Thermostat")
-			.setCharacteristic(Characteristic.SerialNumber, "VID " + this.address);
+	addAccessoryServices() {
+		this.accessory.addService(Service.TemperatureSensor, this.name);
+		this.accessory.getService(Service.TemperatureSensor).getCharacteristic(Characteristic.CurrentTemperature)
+		.on('get', (callback) => {
+			this.log(sprintf("getTemperature %s = %.1f",this.address, this.temperature));
+			callback(null, this.temperature);
+		});
 
-		this.thermostatService = new Service.TemperatureSensor(this.name);
-		this.thermostatService.getCharacteristic(Characteristic.CurrentTemperature)
-			.on('get', (callback) => {
-				this.log(sprintf("getTemperature %s = %.1f",this.address, this.temperature));
-				callback(null, this.temperature);
-			});
+		//this.accessory.addService(Service.AccessoryInformation);
+		this.accessory.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.Manufacturer, "Vantage Controls");
+
+		this.accessory.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.Model, "Thermostat");
+
+		this.accessory.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.SerialNumber, "VID " + this.address);
 
 		this.parent.infusion.Thermostat_GetOutdoorTemperature(this.address);
-		return [service, this.thermostatService];		
+
 	}
 
+
 }
+
 
 class VantageLoad {
 	constructor(log, parent, name, vid, type) {
@@ -378,34 +411,39 @@ class VantageLoad {
 		this.sat = 0;
 		this.hue = 0;
 		this.type = type;
+		this.accessory = undefined;
 	}
 
-	getServices() {
-		var service = new Service.AccessoryInformation();
-		service.setCharacteristic(Characteristic.Name, this.name)
-			.setCharacteristic(Characteristic.Manufacturer, "Vantage Controls")
-			.setCharacteristic(Characteristic.Model, "Power Switch")
-			.setCharacteristic(Characteristic.SerialNumber, "VID " + this.address);
+	getAccessory(){
+		return this.accessory;
+	}
 
-		this.lightBulbService = new Service.Lightbulb(this.name);
+	setAccessory(accessory) {
+		this.accessory = accessory;
+	}
 
-		this.lightBulbService.getCharacteristic(Characteristic.On)
-			.on('set', (level, callback) => {
-				this.log.debug(sprintf("setPower %s = %s",this.address, level));
-				this.power = (level > 0);
-				if (this.power && this.bri == 0) {
-					this.bri = 100;
-				}
-				this.parent.infusion.Load_Dim(this.address, this.power * this.bri);
-				callback(null);
-			})
-			.on('get', (callback) => {
-				this.log.debug(sprintf("getPower %s = %s",this.address, this.power));
-				callback(null, this.power);
-			});
+	addAccessoryServices() {
+		this.log.warn("adding Services");
+		this.accessory.addService(Service.Lightbulb, this.name);
+		this.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.On)
+		.on('set', (level, callback) => {
+			this.log.debug(sprintf("setPower %s = %s",this.address, level));
+			this.power = (level > 0);
+			if (this.power && this.bri == 0) {
+				this.bri = 100;
+			}
+			this.parent.infusion.Load_Dim(this.address, this.power * this.bri);
+			callback(null);
+		})
+		.on('get', (callback) => {
+			this.log.debug(sprintf("getPower %s = %s",this.address, this.power));
+			callback(null, this.power);
+		});
+		this.log.warn("added basic lightbulb");
 
 		if (this.type == "dimmer" || this.type == "rgb") {
-			this.lightBulbService.getCharacteristic(Characteristic.Brightness)
+			this.log.warn("adding dimmer");
+			this.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Brightness)
 				.on('set', (level, callback) => {
 					this.log.debug(sprintf("setBrightness %s = %d",this.address, level));
 					this.bri = parseInt(level);
@@ -420,7 +458,8 @@ class VantageLoad {
 		}
 
 		if (this.type == "rgb") {
-			this.lightBulbService.getCharacteristic(Characteristic.Saturation)
+			this.log.warn("adding rgb");
+			this.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Saturation)
 				.on('set', (level, callback) => {
 					this.power = true;
 					this.sat = level;
@@ -430,7 +469,7 @@ class VantageLoad {
 				.on('get', (callback) => {
 					callback(null, this.sat);
 				});
-			this.lightBulbService.getCharacteristic(Characteristic.Hue)
+				this.accessory.getService(Service.Lightbulb).getCharacteristic(Characteristic.Hue)
 				.on('set', (level, callback) => {
 					this.power = true;
 					this.hue = level;
@@ -441,9 +480,24 @@ class VantageLoad {
 					callback(null, this.hue);
 				});
 		}
+		this.log.warn("adding info");
+		//this.accessory.addService(Service.AccessoryInformation);
+
+		this.accessory.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.Manufacturer, "Vantage Controls");
+
+		this.accessory.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.Model, "Power Switch");
+
+		this.accessory.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.SerialNumber, "VID " + this.address);
+
+		this.log.warn("done adding");
+		// why?
 		this.parent.infusion.getLoadStatus(this.address);
-		return [service, this.lightBulbService];
+
 	}
+
 }
 
 class Logger{

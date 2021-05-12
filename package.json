@@ -1,6 +1,6 @@
 {
   "name": "homebridge-vantage-dym",
-  "version": "0.0.28",
+  "version": "0.1.0",
   "description": "VantageControls InFusion V2 plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [

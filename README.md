@@ -1,4 +1,7 @@
-# THIS IS A TEST PLUGIN! DONT USE!
+# This is still in progress.
+things left todo:
+1. rewrite in typescript
+2. implement configureAccessory
 # VantagePlugin
 VantageControls InFusion plugin for homebridge: https://github.com/nfarina/homebridge
 
