@@ -2,7 +2,7 @@
     "name": "homebridge-vantage-static",
     "version": "0.0.1",
     "description": "VantageControls InFusion V2 plugin for homebridge. original repo: https://github.com/nfarina/homebridge",
-    "main": "dist/homebridge-vantage.js",
+    "main": "dist/homebridge-vantage-static.js",
     "scripts": {
         "clean": "rimraf ./dist",
         "build": "rimraf ./dist && tsc",

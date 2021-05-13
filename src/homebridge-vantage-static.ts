@@ -2,7 +2,8 @@ import {AccessoryPlugin, API, HAP, Logging, PlatformConfig, StaticPlatformPlugin
 import {VantageLight} from "./vantage-light-accessory";
 import {VantageInfusionController} from "./vantage-infusion-controller";
 
-const PLATFORM_NAME = "homebridge-vantage-static";
+const PLUGIN_NAME = "homebridge-vantage-static";
+const PLATFORM_NAME = "VantageConrols";
 
 let hap: HAP;
 
