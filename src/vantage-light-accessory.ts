@@ -37,9 +37,13 @@ import {
           callback();
         });
   
+        // TODO: add vid to serial number
       this.informationService = new hap.Service.AccessoryInformation()
-        .setCharacteristic(hap.Characteristic.Manufacturer, "Custom Manufacturer")
-        .setCharacteristic(hap.Characteristic.Model, "Custom Model");
+        .setCharacteristic(hap.Characteristic.Manufacturer, "Vantage Controls")
+        .setCharacteristic(hap.Characteristic.Model, "Power Switch")
+        .setCharacteristic(hap.Characteristic.SerialNumber, "VID ");
+
+
   
       log.info("Example switch '%s' created!", name);
     }

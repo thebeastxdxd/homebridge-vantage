@@ -1,5 +1,6 @@
 import {AccessoryPlugin, API, HAP, Logging, PlatformConfig, StaticPlatformPlugin,} from "homebridge";
 import {VantageLight} from "./vantage-light-accessory";
+import {VantageInfusionController} from "./vantage-infusion-controller";
 
 const PLATFORM_NAME = "homebridge-vantage-static";
 
@@ -14,11 +15,12 @@ export = (api: API) => {
 class VantageStaticPlatform implements StaticPlatformPlugin {
 
   private readonly log: Logging;
+  private vantageController: VantageInfusionController;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
 
-    // probably parse config or something here
+    this.vantageController = new VantageInfusionController(log, config.ipaddress);
 
     log.info("Example platform finished initializing!");
   }
