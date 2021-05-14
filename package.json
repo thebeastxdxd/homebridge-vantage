@@ -1,12 +1,11 @@
 {
     "name": "homebridge-vantage-static",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "VantageControls InFusion plugin for homebridge rewritten in typescript. original repo: https://github.com/nfarina/homebridge",
     "main": "dist/homebridge-vantage-static.js",
     "scripts": {
         "clean": "rimraf ./dist",
         "build": "rimraf ./dist && tsc",
-        "prepublishOnly": "npm run build",
         "postpublish": "npm run clean",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -26,9 +25,18 @@
         "url": "https://github.com/thebeastxdxd/homebridge-vantage.git"
     },
     "devDependencies": {
-        "@types/node": "10.17.19",
+        "@types/libxmljs": "^0.18.6",
+        "@types/node": "^10.17.19",
+        "@types/xml2json": "^0.11.3",
         "homebridge": "^1.0.4",
+        "libxmljs": "^0.19.7",
+        "net": "^1.0.2",
+        "promise": "^8.0.3",
         "rimraf": "^3.0.2",
-        "typescript": "^3.8.3"
+        "typescript": "^3.8.3",
+        "xml2json": "^0.12.0"
+    },
+    "dependencies": {
+        "fast-xml-parser": "^3.19.0"
     }
 }

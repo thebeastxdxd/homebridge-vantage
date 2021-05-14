@@ -1,5 +1,7 @@
 import * as net from 'net';
 import * as fs from 'fs';
+import * as xml2json from 'xml2json';
+import * as libxmljs from 'libxmljs';
 import {
   Logging,
 } from "homebridge";
@@ -13,7 +15,10 @@ const configurationPath = '/tmp/vantage.dc';
 const LoadStatusChangeEvent = "loadStatusChange";
 const ThermostatOutdoorTemperatureChangeEvent = "thermostatOutdoorTemperatureChange";
 const ThermostatIndoorTemperatureChangeEvent = "thermostatIndoorTemperatureChange";
-const IsInterfaceSupported = (vid: string, interfaceId: string) => `isInterfaceSupportedAnswer-${vid}-${interfaceId}`;
+const IsInterfaceSupportedEvent = (vid: string, interfaceId: string) => `isInterfaceSupportedAnswer-${vid}-${interfaceId}`;
+const EndDownloadConfigurationEvent = "endDownloadConfiguration";
+
+
 export class VantageInfusionController extends EventEmitter {
 
   private readonly log: Logging;
@@ -60,7 +65,7 @@ export class VantageInfusionController extends EventEmitter {
   */
   serverConfigurationDownload() {
     // data callback should already be initialized
-    this.serverConfiguration.connect({host: this.ipaddress, port: serverConfigurationPort}, () => {
+    this.serverConfiguration.connect({ host: this.ipaddress, port: serverConfigurationPort }, () => {
       // Aehm, async method becomes sync...
       this.sendGetInterfaces();
       this.sendDownloadConfiguration();
@@ -106,7 +111,7 @@ export class VantageInfusionController extends EventEmitter {
       // Non-state feedback
       if (line.startsWith("R:INVOKE") && line.includes("Object.IsInterfaceSupported")) {
         const support = parseInt(command[2]);
-        this.emit(IsInterfaceSupported(command[1], command[4]), support);
+        this.emit(IsInterfaceSupportedEvent(command[1], command[4]), support);
       }
     });
   }
@@ -117,7 +122,21 @@ export class VantageInfusionController extends EventEmitter {
   serverConfigurationDataCallback(data: Buffer) {
     this.log.info(data.toString());
     this.serverDatabase = this.serverDatabase + data.toString().replace("\ufeff", "");
-    this.serverConfiguration.destroy();
+
+    try {
+      this.serverDatabase = this.serverDatabase.replace('<?File Encode="Base64" /', '<File>');
+      this.serverDatabase = this.serverDatabase.replace('?>', '<File>');
+      // try to parse the xml we got so far
+      const xml = libxmljs.parseXml(this.serverDatabase);
+    } catch (error) {
+      this.log.info(error.message);
+      return false;
+    }
+
+    const parsedDatabase = JSON.parse(xml2json.toJson(this.serverDatabase));
+    this.parseInterfaces(parsedDatabase);
+    this.parseConfigurationDatabase(parsedDatabase);
+    this.serverDatabase = "";
   }
 
   sendGetLoadStatus(vid: string) {
@@ -171,7 +190,7 @@ export class VantageInfusionController extends EventEmitter {
       var interfaceId = this.interfaces[interfaceName];
 
       return new Promise((resolve) => {
-        this.once(IsInterfaceSupported(item.VID, interfaceId), (support) => resolve({ item, interface: interfaceName, support }));
+        this.once(IsInterfaceSupportedEvent(item.VID, interfaceId), (support) => resolve({ item, interface: interfaceName, support }));
         this.sendIsInterfaceSupported(item.VID, interfaceId);
       });
     }
@@ -187,7 +206,21 @@ export class VantageInfusionController extends EventEmitter {
     }
   }
 
+  parseInterfaces(database: any) {
+    if (database.IIntrospection !== undefined) {
+      let databaseInterfaces = database.IIntrospection.GetInterfaces.return.Interface;
+      databaseInterfaces.array.forEach((tmpInterface: any) => {
+        this.interfaces[tmpInterface.Name] = tmpInterface.IID;
+      });
+    }
+  }
 
-
+  parseConfigurationDatabase(database: any) {
+    if (database.IBackup !== undefined) {
+      const configuration = Buffer.from(database.IBackup.GetFile.return.File, 'base64').toString("ascii");
+      fs.writeFileSync(configurationPath, configuration);
+      this.emit(EndDownloadConfigurationEvent, configuration);
+    }
+  }
 
 }
