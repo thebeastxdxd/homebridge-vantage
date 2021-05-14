@@ -117,6 +117,7 @@ export class VantageInfusionController extends EventEmitter {
   serverConfigurationDataCallback(data: Buffer) {
     this.log.info(data.toString());
     this.serverDatabase = this.serverDatabase + data.toString().replace("\ufeff", "");
+    this.serverConfiguration.destroy();
   }
 
   sendGetLoadStatus(vid: string) {
