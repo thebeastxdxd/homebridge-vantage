@@ -125,10 +125,9 @@ export class VantageInfusionController extends EventEmitter {
       this.serverDatabase = this.serverDatabase.replace('<?File Encode="Base64" /', '<File>');
       this.serverDatabase = this.serverDatabase.replace('?>', '<File>');
       // try to parse the xml we got so far
-      const xml = libxmljs.parseXml(this.serverDatabase);
+      libxmljs.parseXml(this.serverDatabase);
       this.log.info("was able to parse xml");
     } catch (error) {
-      this.log.info(error.message);
       return false;
     }
 
