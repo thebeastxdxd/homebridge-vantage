@@ -69,7 +69,7 @@ export class VantageInfusionController extends EventEmitter {
 
   serverControllerDataCallback(data: Buffer) {
 
-    this.log.debug(data.toString());
+    this.log.info(data.toString());
 
     const lines = data.toString().split('\n');
 
