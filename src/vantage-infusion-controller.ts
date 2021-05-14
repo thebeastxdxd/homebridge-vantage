@@ -134,6 +134,7 @@ export class VantageInfusionController extends EventEmitter {
     const parsedDatabase = JSON.parse(xml2json.toJson(this.serverDatabase));
     this.parseInterfaces(parsedDatabase);
     this.parseConfigurationDatabase(parsedDatabase);
+    this.serverDatabase = "";
   }
 
   sendGetLoadStatus(vid: string) {
@@ -224,6 +225,8 @@ export class VantageInfusionController extends EventEmitter {
       fs.readFile(configurationPath, 'utf8', (err, data) => {
         if (!err) {
           this.emit(EndDownloadConfigurationEvent, data);
+        } else {
+          this.log.info("database file does not exist");
         }
       })
     }
