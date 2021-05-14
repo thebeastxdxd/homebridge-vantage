@@ -36,9 +36,8 @@ export class VantageInfusionController extends EventEmitter {
     this.interfaces = {};
     this.serverController = new net.Socket();
     this.serverConfiguration = new net.Socket();
-    this.serverController.on('data', this.serverControllerDataCallback);
-    this.serverConfiguration.on('data', this.serverConfigurationDataCallback);
-
+    this.serverController.on('data', this.serverControllerDataCallback.bind(this));
+    this.serverConfiguration.on('data', this.serverConfigurationDataCallback.bind(this));
     this.log.info("Connecting to VantageInfusion Controller at ", ipaddress);
     this.serverControllerConnect();
   }
@@ -74,7 +73,7 @@ export class VantageInfusionController extends EventEmitter {
 
   serverControllerDataCallback(data: Buffer) {
 
-    this.log.info(data.toString());
+    this.log.debug(data.toString());
 
     const lines = data.toString().split('\n');
 
@@ -120,7 +119,7 @@ export class VantageInfusionController extends EventEmitter {
    * is supported by the recognized devices. 
    */
   serverConfigurationDataCallback(data: Buffer) {
-    this.log.info(data.toString());
+    this.log.debug(data.toString());
     this.serverDatabase = this.serverDatabase + data.toString().replace("\ufeff", "");
 
     try {
@@ -220,6 +219,12 @@ export class VantageInfusionController extends EventEmitter {
       const configuration = Buffer.from(database.IBackup.GetFile.return.File, 'base64').toString("ascii");
       fs.writeFileSync(configurationPath, configuration);
       this.emit(EndDownloadConfigurationEvent, configuration);
+    } else {
+      fs.readFile(configurationPath, 'utf8', (err, data) => {
+        if (!err) {
+          this.emit(EndDownloadConfigurationEvent, data);
+        }
+      })
     }
   }
 
