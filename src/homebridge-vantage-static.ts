@@ -22,7 +22,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log = log;
 
     this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
-    this.vantageController.serverControllerConnect();
+    this.vantageController.serverConfigurationDownload();
     this.log.info("Example platform finished initializing!");
   }
 
