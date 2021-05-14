@@ -119,7 +119,6 @@ export class VantageInfusionController extends EventEmitter {
    * is supported by the recognized devices. 
    */
   serverConfigurationDataCallback(data: Buffer) {
-    this.log.debug(data.toString());
     this.serverDatabase = this.serverDatabase + data.toString().replace("\ufeff", "");
 
     try {
@@ -127,6 +126,7 @@ export class VantageInfusionController extends EventEmitter {
       this.serverDatabase = this.serverDatabase.replace('?>', '<File>');
       // try to parse the xml we got so far
       const xml = libxmljs.parseXml(this.serverDatabase);
+      this.log.info("was able to parse xml");
     } catch (error) {
       this.log.info(error.message);
       return false;
@@ -135,7 +135,6 @@ export class VantageInfusionController extends EventEmitter {
     const parsedDatabase = JSON.parse(xml2json.toJson(this.serverDatabase));
     this.parseInterfaces(parsedDatabase);
     this.parseConfigurationDatabase(parsedDatabase);
-    this.serverDatabase = "";
   }
 
   sendGetLoadStatus(vid: string) {
@@ -207,6 +206,7 @@ export class VantageInfusionController extends EventEmitter {
 
   parseInterfaces(database: any) {
     if (database.IIntrospection !== undefined) {
+      this.log.debug("parsing interfaces");
       let databaseInterfaces = database.IIntrospection.GetInterfaces.return.Interface;
       databaseInterfaces.array.forEach((tmpInterface: any) => {
         this.interfaces[tmpInterface.Name] = tmpInterface.IID;
@@ -216,10 +216,12 @@ export class VantageInfusionController extends EventEmitter {
 
   parseConfigurationDatabase(database: any) {
     if (database.IBackup !== undefined) {
+      this.log.debug("parsing configuration");
       const configuration = Buffer.from(database.IBackup.GetFile.return.File, 'base64').toString("ascii");
       fs.writeFileSync(configurationPath, configuration);
       this.emit(EndDownloadConfigurationEvent, configuration);
     } else {
+      this.log.debug("reading configuration from file");
       fs.readFile(configurationPath, 'utf8', (err, data) => {
         if (!err) {
           this.emit(EndDownloadConfigurationEvent, data);
