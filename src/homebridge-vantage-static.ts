@@ -1,6 +1,8 @@
+
 import {AccessoryPlugin, API, HAP, Logging, PlatformConfig, StaticPlatformPlugin,} from "homebridge";
 import {VantageLight} from "./vantage-light-accessory";
-import {VantageInfusionController} from "./vantage-infusion-controller";
+import {VantageInfusionController, EndDownloadConfigurationEvent, LoadStatusChangeEvent} from "./vantage-infusion-controller";
+import * as xml2json from 'xml2json'
 
 const PLUGIN_NAME = "homebridge-vantage-static";
 const PLATFORM_NAME = "VantageControls";
@@ -23,7 +25,21 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
     this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
     this.vantageController.serverConfigurationDownload();
-    this.log.info("Example platform finished initializing!");
+
+    this.vantageController.on(EndDownloadConfigurationEvent, this.endDownloadConfigurationCallback.bind(this));
+    this.vantageController.on(LoadStatusChangeEvent, this.loadStatusChangeCallback.bind(this));
+
+    this.log.info("Done initializing homebridge vantage platform");
+  }
+
+  loadStatusChangeCallback(vid: string, value: number) {
+
+  }
+
+  endDownloadConfigurationCallback(configurationString: any) {
+    this.log.info("Vantage Platfrom done Downloading configuration.");
+    this.log.debug(configurationString);
+    const configuration = JSON.parse(xml2json.toJson(configurationString));
   }
 
   // can call callback at a later time, but it will stop the bridge from loading

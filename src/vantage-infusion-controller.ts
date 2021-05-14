@@ -13,11 +13,11 @@ const serverConfigurationPort = 2001;
 
 const configurationPath = '/tmp/vantage.dc';
 
-const LoadStatusChangeEvent = "loadStatusChange";
-const ThermostatOutdoorTemperatureChangeEvent = "thermostatOutdoorTemperatureChange";
-const ThermostatIndoorTemperatureChangeEvent = "thermostatIndoorTemperatureChange";
-const IsInterfaceSupportedEvent = (vid: string, interfaceId: string) => `isInterfaceSupportedAnswer-${vid}-${interfaceId}`;
-const EndDownloadConfigurationEvent = "endDownloadConfiguration";
+export const LoadStatusChangeEvent = "loadStatusChange";
+export const ThermostatOutdoorTemperatureChangeEvent = "thermostatOutdoorTemperatureChange";
+export const ThermostatIndoorTemperatureChangeEvent = "thermostatIndoorTemperatureChange";
+export const IsInterfaceSupportedEvent = (vid: string, interfaceId: string) => `isInterfaceSupportedAnswer-${vid}-${interfaceId}`;
+export const EndDownloadConfigurationEvent = "endDownloadConfiguration";
 
 
 export class VantageInfusionController extends EventEmitter {
@@ -124,7 +124,7 @@ export class VantageInfusionController extends EventEmitter {
 
     try {
       this.serverDatabase = this.serverDatabase.replace('<?File Encode="Base64" /', '<File>');
-      this.serverDatabase = this.serverDatabase.replace('?>', '<File>');
+      this.serverDatabase = this.serverDatabase.replace('?>', '</File>');
       // try to parse the xml we got so far
       libxmljs.parseXml(this.serverDatabase);
       this.log.info("was able to parse xml");
