@@ -21,9 +21,9 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
 
-    this.vantageController = new VantageInfusionController(log, config.ipaddress);
+    this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
     this.vantageController.serverControllerConnect();
-    log.info("Example platform finished initializing!");
+    this.log.info("Example platform finished initializing!");
   }
 
   // can call callback at a later time, but it will stop the bridge from loading
