@@ -2,6 +2,7 @@ import * as net from 'net';
 import * as fs from 'fs';
 import * as xml2json from 'xml2json';
 import * as libxmljs from 'libxmljs';
+import * as sleep from 'sleep';
 import {
   Logging,
 } from "homebridge";
@@ -132,6 +133,7 @@ export class VantageInfusionController extends EventEmitter {
     }
 
     const parsedDatabase = JSON.parse(xml2json.toJson(this.serverDatabase));
+    this.log.info(parsedDatabase);
     this.parseInterfaces(parsedDatabase);
     this.parseConfigurationDatabase(parsedDatabase);
     this.serverDatabase = "";
@@ -172,6 +174,7 @@ export class VantageInfusionController extends EventEmitter {
   }
 
   sendIsInterfaceSupported(vid: string, interfaceId: string) {
+    sleep.usleep(5000);
     this.serverController.write(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`);
   }
 
@@ -200,6 +203,7 @@ export class VantageInfusionController extends EventEmitter {
 
   sendDownloadConfiguration() {
     if (!fs.existsSync(configurationPath)) {
+      this.log.debug("sending configuration download");
       this.serverConfiguration.write("<IBackup><GetFile><call>Backup\\Project.dc</call></GetFile></IBackup>\n");
     }
   }
