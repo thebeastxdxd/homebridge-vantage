@@ -3,7 +3,7 @@ import {VantageLight} from "./vantage-light-accessory";
 import {VantageInfusionController} from "./vantage-infusion-controller";
 
 const PLUGIN_NAME = "homebridge-vantage-static";
-const PLATFORM_NAME = "VantageConrols";
+const PLATFORM_NAME = "VantageControls";
 
 let hap: HAP;
 
