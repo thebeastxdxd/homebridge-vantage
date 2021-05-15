@@ -80,8 +80,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       }
     });
 
-    Promise.all(this.interfaceSupportRequest).then((_values: any) => {
-      this.log.info("adding accessories");
+    Promise.all(this.interfaceSupportRequest).then((_values: any[]) => {
+      this.log.info(`adding ${_values.length} accessories`);
       this.accessoriesCallback(Object.values(this.accessoriesDict));
     })
   }
