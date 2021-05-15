@@ -111,6 +111,7 @@ export class VantageInfusionController extends EventEmitter {
       // Non-state feedback
       if (line.startsWith("R:INVOKE") && line.includes("Object.IsInterfaceSupported")) {
         const support = parseInt(command[2]);
+        this.log.debug("emitting supported event");
         this.emit(IsInterfaceSupportedEvent(command[1], command[4]), support);
       }
     });
@@ -139,7 +140,7 @@ export class VantageInfusionController extends EventEmitter {
     this.serverDatabase = "";
   }
 
-  sendGetLoadStatus(vid: string) : void {
+  sendGetLoadStatus(vid: string): void {
     this.serverController.write(`GETLOAD ${vid}\n`);
   }
 
@@ -148,7 +149,7 @@ export class VantageInfusionController extends EventEmitter {
    * 
    * NOTE: this function was not tested.
   */
-  sendRGBLoadDissolveHSL(vid: string, h: number, s: number, l: number, time: number) : void {
+  sendRGBLoadDissolveHSL(vid: string, h: number, s: number, l: number, time: number): void {
     const thisTime = time || 500;
     this.serverController.write(`INVOKE ${vid} RGBLoad.DissolveHSL ${h} ${s} ${l * 1000} ${thisTime}\n`);
   }
@@ -156,14 +157,14 @@ export class VantageInfusionController extends EventEmitter {
   /**
    * NOTE: this function was not tested.
   */
-  sendThermostatGetOutdoorTemperature(vid: string) : void {
+  sendThermostatGetOutdoorTemperature(vid: string): void {
     this.serverController.write(`INVOKE ${vid} Thermostat.GetOutdoorTemperature\n`);
   }
 
   /**
    * Send the set light level to the controller
   */
-  sendLoadDim(vid: string, level: number, time: number) : void {
+  sendLoadDim(vid: string, level: number, time: number): void {
     // TODO: reduce feedback (or command) rate
     const thisTime = time || 1;
     if (level > 0) {
@@ -173,12 +174,12 @@ export class VantageInfusionController extends EventEmitter {
     }
   }
 
-  sendIsInterfaceSupported(vid: string, interfaceId: string) : void {
+  sendIsInterfaceSupported(vid: string, interfaceId: string): void {
     sleep.usleep(5000);
     this.serverController.write(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`);
   }
 
-  isInterfaceSupported(item: any, interfaceName: string) : Promise<{item:any, interface: string, support: boolean}> {
+  isInterfaceSupported(item: any, interfaceName: string): Promise<{ item: any, interface: string, support: boolean }> {
 
     if (this.interfaces[interfaceName] === undefined) {
       return Promise.resolve({ item, interface: interfaceName, support: false });
@@ -191,6 +192,7 @@ export class VantageInfusionController extends EventEmitter {
       const interfaceId = this.interfaces[interfaceName];
 
       return new Promise((resolve) => {
+        this.log.debug(`waiting for event ${IsInterfaceSupportedEvent(item.VID, interfaceId)}`);
         this.once(IsInterfaceSupportedEvent(item.VID, interfaceId), (support) => resolve({ item, interface: interfaceName, support }));
         this.sendIsInterfaceSupported(item.VID, interfaceId);
       });
@@ -213,7 +215,6 @@ export class VantageInfusionController extends EventEmitter {
       this.log.debug("parsing interfaces");
       let databaseInterfaces = database.IIntrospection.GetInterfaces.return.Interface;
       databaseInterfaces.forEach((tmpInterface: any) => {
-        this.log.debug(`adding interface ${tmpInterface.Name}`);
         this.interfaces[tmpInterface.Name] = tmpInterface.IID;
       });
     }
