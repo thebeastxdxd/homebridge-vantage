@@ -22,12 +22,14 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   private interfaceSupportRequest: Array<Promise<void>>;
   private accessoriesDict: { [key in string]: AccessoryPlugin };
   private accessoriesCallback:(foundAccessories: AccessoryPlugin[]) => void ;
+  private api: API;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
     this.interfaceSupportRequest = [];
     this.accessoriesDict = {};
     this.accessoriesCallback = () => {};
+    this.api = api;
 
     if (config.controllerSendInterval) {
       this.vantageController = new VantageInfusionController(this.log, config.ipaddress, config.controllerSendInterval);
@@ -82,7 +84,11 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
     Promise.all(this.interfaceSupportRequest).then((_values: any[]) => {
       this.log.info(`adding ${_values.length} accessories`);
-      this.accessoriesCallback(Object.values(this.accessoriesDict));
+      let accessories = Object.values(this.accessoriesDict);
+      let platfromAccessories = accessories.slice(0, 149);
+      let leftOverAccesssories = accessories.slice(149);
+      this.log.info(`there are too many accessories for one bridge: ${accessories.length}`);
+      this.accessoriesCallback(platfromAccessories);
     })
   }
 
