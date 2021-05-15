@@ -115,7 +115,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
    */
   getAreaName(objects: any, areaVid: string) {
     const areaObject = objects.filter((object: any) => {
-      if(object.Area === undefined) {
+      if (object.Area === undefined) {
         return false;
       }
       return object.Area.VID === areaVid;
@@ -131,7 +131,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   getLoadType(item: any) {
     if (!item.LoadType.includes("Relay") && !item.LoadType.includes("Motor")) {
       // TODO?: add check if its a a Dimmer or a RGB load
-      return  "dimmer";
+      return "dimmer";
     } else {
       return "relay";
     }
@@ -140,6 +140,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   // can call callback at a later time, but it will stop the bridge from loading
   accessories(callback: (foundAccessories: AccessoryPlugin[]) => void): void {
     Promise.all(this.interfaceSupportRequest).then((_values: any) => {
+      this.log.info("adding accessories");
       callback(Object.values(this.accessoriesDict));
     })
   }

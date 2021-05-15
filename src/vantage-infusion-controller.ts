@@ -53,8 +53,8 @@ export class VantageInfusionController extends EventEmitter {
   serverControllerConnect() {
     // data callback should already be initialized
     this.serverController.connect({ host: this.ipaddress, port: serverControllerPort }, () => {
-      this.serverController.write("STATUS ALL\n", "ascii");
-      this.serverController.write("ELENABLE 1 AUTOMATION ON\nELENABLE 1 EVENT ON\nELENABLE 1 STATUS ON\nELENABLE 1 STATUSEX ON\nELENABLE 1 SYSTEM ON\nELLOG AUTOMATION ON\nELLOG EVENT ON\nELLOG STATUS ON\nELLOG STATUSEX ON\nELLOG SYSTEM ON\n", "ascii");
+      this.sendControllerMessage("STATUS ALL\n");
+      this.sendControllerMessage("ELENABLE 1 AUTOMATION ON\nELENABLE 1 EVENT ON\nELENABLE 1 STATUS ON\nELENABLE 1 STATUSEX ON\nELENABLE 1 SYSTEM ON\nELLOG AUTOMATION ON\nELLOG EVENT ON\nELLOG STATUS ON\nELLOG STATUSEX ON\nELLOG SYSTEM ON\n");
     });
   }
 
@@ -134,14 +134,18 @@ export class VantageInfusionController extends EventEmitter {
     }
 
     const parsedDatabase = JSON.parse(xml2json.toJson(this.serverDatabase));
-    this.log.info(parsedDatabase);
     this.parseInterfaces(parsedDatabase);
     this.parseConfigurationDatabase(parsedDatabase);
     this.serverDatabase = "";
   }
 
+  sendControllerMessage(msg: string) {
+    sleep.usleep(500000);
+    this.serverController.write(msg, "ascii");
+  }
+
   sendGetLoadStatus(vid: string): void {
-    this.serverController.write(`GETLOAD ${vid}\n`, "ascii");
+    this.sendControllerMessage(`GETLOAD ${vid}\n`);
   }
 
   /**
@@ -151,14 +155,14 @@ export class VantageInfusionController extends EventEmitter {
   */
   sendRGBLoadDissolveHSL(vid: string, h: number, s: number, l: number, time: number): void {
     const thisTime = time || 500;
-    this.serverController.write(`INVOKE ${vid} RGBLoad.DissolveHSL ${h} ${s} ${l * 1000} ${thisTime}\n`, "ascii");
+    this.sendControllerMessage(`INVOKE ${vid} RGBLoad.DissolveHSL ${h} ${s} ${l * 1000} ${thisTime}\n`);
   }
 
   /**
    * NOTE: this function was not tested.
   */
   sendThermostatGetOutdoorTemperature(vid: string): void {
-    this.serverController.write(`INVOKE ${vid} Thermostat.GetOutdoorTemperature\n`, "ascii");
+    this.sendControllerMessage(`INVOKE ${vid} Thermostat.GetOutdoorTemperature\n`);
   }
 
   /**
@@ -168,16 +172,14 @@ export class VantageInfusionController extends EventEmitter {
     // TODO: reduce feedback (or command) rate
     const thisTime = time || 1;
     if (level > 0) {
-      this.serverController.write(`INVOKE ${vid} Load.Ramp 6 ${thisTime} ${level}\n`, "ascii");
+      this.sendControllerMessage(`INVOKE ${vid} Load.Ramp 6 ${thisTime} ${level}\n`);
     } else {
-      this.serverController.write(`INVOKE ${vid} Load.SetLevel ${level}\n`, "ascii");
+      this.sendControllerMessage(`INVOKE ${vid} Load.SetLevel ${level}\n`);
     }
   }
 
   sendIsInterfaceSupported(vid: string, interfaceId: string): void {
-    // sleep.usleep(5000);
-    sleep.usleep(1000000)
-    this.serverController.write(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`, "ascii");
+    this.sendControllerMessage(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`);
   }
 
   isInterfaceSupported(item: any, interfaceName: string): Promise<{ item: any, interface: string, support: boolean }> {
