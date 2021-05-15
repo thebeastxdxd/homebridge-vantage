@@ -37,7 +37,6 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   }
 
   loadStatusChangeCallback(vid: string, value: number) {
-    this.log.debug("got load status change event");
   }
 
   endDownloadConfigurationCallback(configurationString: string) {
@@ -102,7 +101,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
         const name = `${response.item.Area}-${response.item.Name}`;
         const loadType = this.getLoadType(response.item);
 
-        this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, DIMMER)`);
+        // this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, DIMMER)`);
         this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, loadType);
       }
     });
@@ -139,6 +138,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
   // can call callback at a later time, but it will stop the bridge from loading
   accessories(callback: (foundAccessories: AccessoryPlugin[]) => void): void {
+    this.log("acessories called");
     Promise.all(this.interfaceSupportRequest).then((_values: any) => {
       this.log.info("adding accessories");
       callback(Object.values(this.accessoriesDict));

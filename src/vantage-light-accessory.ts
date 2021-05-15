@@ -45,7 +45,7 @@ import {
 
 
   
-      log.info("Example switch '%s' created!", name);
+      // log.info("Example switch '%s' created!", name);
     }
   
     /*
