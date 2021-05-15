@@ -113,8 +113,8 @@ export class VantageInfusionController extends EventEmitter {
       if (line.startsWith("R:INVOKE") && line.includes("Object.IsInterfaceSupported")) {
         const support = parseInt(command[2]);
         this.log.debug(`emitting supported event ${IsInterfaceSupportedEvent(command[1], command[4])}`);
-        this.log.debug(`this is the strings ${command[1]}...${command[4]}...`);
-        this.emit(IsInterfaceSupportedEvent(command[1], command[4]), support);
+        this.log.debug(`this is the strings ${command[1].trim()}...${command[4].trim()}...`);
+        this.emit(IsInterfaceSupportedEvent(command[1].trim(), command[4].trim()), support);
       }
     });
   }
@@ -195,10 +195,11 @@ export class VantageInfusionController extends EventEmitter {
 
       return new Promise((resolve) => {
         this.log.debug(`waiting for event ${IsInterfaceSupportedEvent(item.VID, interfaceId)}`);
-          this.log.debug(`this is the strings ${item.VID}...${interfaceId}...`);
-        this.once(IsInterfaceSupportedEvent(item.VID, interfaceId), (support) => {
+        this.log.debug(`this is the strings ${item.VID}...${interfaceId}...`);
+        this.once(IsInterfaceSupportedEvent(item.VID.trim(), interfaceId.trim()), (support) => {
           this.log.debug("got support event!");
-          resolve({ item, interface: interfaceName, support })});
+          resolve({ item, interface: interfaceName, support })
+        });
         this.sendIsInterfaceSupported(item.VID, interfaceId);
       });
     }
