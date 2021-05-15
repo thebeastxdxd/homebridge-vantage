@@ -37,7 +37,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   }
 
   loadStatusChangeCallback(vid: string, value: number) {
-
+    this.log.debug("got load status change event");
   }
 
   endDownloadConfigurationCallback(configurationString: string) {
