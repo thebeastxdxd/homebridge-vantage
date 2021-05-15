@@ -24,15 +24,17 @@ export class VantageInfusionController extends EventEmitter {
 
   private readonly log: Logging;
   private readonly ipaddress: string;
+  private readonly controllerSendInterval: number;
   private serverDatabase: string;
   private interfaces: Record<string, any>;
   private serverController: net.Socket;
   private serverConfiguration: net.Socket;
 
-  constructor(log: Logging, ipaddress: string) {
+  constructor(log: Logging, ipaddress: string, controllerSendInterval: number = 500000) {
     super();
     this.log = log;
     this.ipaddress = ipaddress;
+    this.controllerSendInterval = controllerSendInterval;
     this.serverDatabase = "";
     this.interfaces = {};
     this.serverController = new net.Socket();
@@ -140,7 +142,7 @@ export class VantageInfusionController extends EventEmitter {
   }
 
   sendControllerMessage(msg: string) {
-    sleep.usleep(500000);
+    sleep.usleep(this.controllerSendInterval);
     this.serverController.write(msg, "ascii");
   }
 

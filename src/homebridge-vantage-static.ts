@@ -21,17 +21,24 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   private vantageController: VantageInfusionController;
   private interfaceSupportRequest: Array<Promise<void>>;
   private accessoriesDict: { [key in string]: AccessoryPlugin };
+  private accessoriesCallback:(foundAccessories: AccessoryPlugin[]) => void ;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
     this.interfaceSupportRequest = [];
     this.accessoriesDict = {};
+    this.accessoriesCallback = () => {};
 
-    this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
-    this.vantageController.serverConfigurationDownload();
+    if (config.controllerSendInterval) {
+      this.vantageController = new VantageInfusionController(this.log, config.ipaddress, config.controllerSendInterval);
+    } else {
+      this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
+    }
 
     this.vantageController.on(EndDownloadConfigurationEvent, this.endDownloadConfigurationCallback.bind(this));
     this.vantageController.on(LoadStatusChangeEvent, this.loadStatusChangeCallback.bind(this));
+
+    this.vantageController.serverConfigurationDownload();
 
     this.log.info("Done initializing homebridge vantage platform");
   }
@@ -72,6 +79,11 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
         }
       }
     });
+
+    Promise.all(this.interfaceSupportRequest).then((_values: any) => {
+      this.log.info("adding accessories");
+      this.accessoriesCallback(Object.values(this.accessoriesDict));
+    })
   }
 
   addHVACObjectType(item: any) {
@@ -138,11 +150,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
   // can call callback at a later time, but it will stop the bridge from loading
   accessories(callback: (foundAccessories: AccessoryPlugin[]) => void): void {
-    this.log("acessories called");
-    Promise.all(this.interfaceSupportRequest).then((_values: any) => {
-      this.log.info("adding accessories");
-      callback(Object.values(this.accessoriesDict));
-    })
+    this.accessoriesCallback = callback;
   }
 
 }
