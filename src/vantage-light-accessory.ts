@@ -21,7 +21,7 @@ import {
     private readonly switchService: Service;
     private readonly informationService: Service;
   
-    constructor(hap: HAP, log: Logging, name: string) {
+    constructor(hap: HAP, log: Logging, name: string, vid: string, loadType: string) {
       this.log = log;
       this.name = name;
   

@@ -179,7 +179,8 @@ export class VantageInfusionController extends EventEmitter {
   }
 
   // TODO change any type
-  isInterfaceSupported(item: any, interfaceName: string) {
+  isInterfaceSupported(item: any, interfaceName: string) : Promise<{item:any, interface: string, support: boolean}> {
+
     if (this.interfaces[interfaceName] === undefined) {
       return Promise.resolve({ item, interface: interfaceName, support: false });
     } else {
