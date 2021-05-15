@@ -175,7 +175,8 @@ export class VantageInfusionController extends EventEmitter {
   }
 
   sendIsInterfaceSupported(vid: string, interfaceId: string): void {
-    sleep.usleep(5000);
+    // sleep.usleep(5000);
+    sleep.usleep(1000000)
     this.serverController.write(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`, "ascii");
   }
 
