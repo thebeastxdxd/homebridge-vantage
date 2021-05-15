@@ -42,7 +42,6 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
   endDownloadConfigurationCallback(configurationString: string) {
     this.log.info("Vantage Platfrom done Downloading configuration.");
-    this.log.debug(configurationString);
     const configuration = JSON.parse(xml2json.toJson(configurationString));
     configuration.Project.Objects.Object.forEach((objectWrapper: any) => {
       /*   
