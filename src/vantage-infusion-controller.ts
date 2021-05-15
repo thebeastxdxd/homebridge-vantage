@@ -111,7 +111,7 @@ export class VantageInfusionController extends EventEmitter {
       // Non-state feedback
       if (line.startsWith("R:INVOKE") && line.includes("Object.IsInterfaceSupported")) {
         const support = parseInt(command[2]);
-        this.log.debug("emitting supported event");
+        this.log.debug(`emitting supported event ${IsInterfaceSupportedEvent(command[1], command[4])}`);
         this.emit(IsInterfaceSupportedEvent(command[1], command[4]), support);
       }
     });
