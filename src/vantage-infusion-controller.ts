@@ -36,6 +36,7 @@ export class VantageInfusionController extends EventEmitter {
     this.serverDatabase = "";
     this.interfaces = {};
     this.serverController = new net.Socket();
+    this.serverController.setEncoding("ascii");
     this.serverConfiguration = new net.Socket();
     this.serverController.on('data', this.serverControllerDataCallback.bind(this));
     this.serverConfiguration.on('data', this.serverConfigurationDataCallback.bind(this));
@@ -52,8 +53,8 @@ export class VantageInfusionController extends EventEmitter {
   serverControllerConnect() {
     // data callback should already be initialized
     this.serverController.connect({ host: this.ipaddress, port: serverControllerPort }, () => {
-      this.serverController.write("STATUS ALL\n");
-      this.serverController.write("ELENABLE 1 AUTOMATION ON\nELENABLE 1 EVENT ON\nELENABLE 1 STATUS ON\nELENABLE 1 STATUSEX ON\nELENABLE 1 SYSTEM ON\nELLOG AUTOMATION ON\nELLOG EVENT ON\nELLOG STATUS ON\nELLOG STATUSEX ON\nELLOG SYSTEM ON\n");
+      this.serverController.write("STATUS ALL\n", "ascii");
+      this.serverController.write("ELENABLE 1 AUTOMATION ON\nELENABLE 1 EVENT ON\nELENABLE 1 STATUS ON\nELENABLE 1 STATUSEX ON\nELENABLE 1 SYSTEM ON\nELLOG AUTOMATION ON\nELLOG EVENT ON\nELLOG STATUS ON\nELLOG STATUSEX ON\nELLOG SYSTEM ON\n", "ascii");
     });
   }
 
@@ -141,7 +142,7 @@ export class VantageInfusionController extends EventEmitter {
   }
 
   sendGetLoadStatus(vid: string): void {
-    this.serverController.write(`GETLOAD ${vid}\n`);
+    this.serverController.write(`GETLOAD ${vid}\n`, "ascii");
   }
 
   /**
@@ -151,14 +152,14 @@ export class VantageInfusionController extends EventEmitter {
   */
   sendRGBLoadDissolveHSL(vid: string, h: number, s: number, l: number, time: number): void {
     const thisTime = time || 500;
-    this.serverController.write(`INVOKE ${vid} RGBLoad.DissolveHSL ${h} ${s} ${l * 1000} ${thisTime}\n`);
+    this.serverController.write(`INVOKE ${vid} RGBLoad.DissolveHSL ${h} ${s} ${l * 1000} ${thisTime}\n`, "ascii");
   }
 
   /**
    * NOTE: this function was not tested.
   */
   sendThermostatGetOutdoorTemperature(vid: string): void {
-    this.serverController.write(`INVOKE ${vid} Thermostat.GetOutdoorTemperature\n`);
+    this.serverController.write(`INVOKE ${vid} Thermostat.GetOutdoorTemperature\n`, "ascii");
   }
 
   /**
@@ -168,15 +169,15 @@ export class VantageInfusionController extends EventEmitter {
     // TODO: reduce feedback (or command) rate
     const thisTime = time || 1;
     if (level > 0) {
-      this.serverController.write(`INVOKE ${vid} Load.Ramp 6 ${thisTime} ${level}\n`);
+      this.serverController.write(`INVOKE ${vid} Load.Ramp 6 ${thisTime} ${level}\n`, "ascii");
     } else {
-      this.serverController.write(`INVOKE ${vid} Load.SetLevel ${level}\n`);
+      this.serverController.write(`INVOKE ${vid} Load.SetLevel ${level}\n`, "ascii");
     }
   }
 
   sendIsInterfaceSupported(vid: string, interfaceId: string): void {
     sleep.usleep(5000);
-    this.serverController.write(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`);
+    this.serverController.write(`INVOKE ${vid} Object.IsInterfaceSupported ${interfaceId}\n`, "ascii");
   }
 
   isInterfaceSupported(item: any, interfaceName: string): Promise<{ item: any, interface: string, support: boolean }> {
@@ -193,20 +194,22 @@ export class VantageInfusionController extends EventEmitter {
 
       return new Promise((resolve) => {
         this.log.debug(`waiting for event ${IsInterfaceSupportedEvent(item.VID, interfaceId)}`);
-        this.once(IsInterfaceSupportedEvent(item.VID, interfaceId), (support) => resolve({ item, interface: interfaceName, support }));
+        this.once(IsInterfaceSupportedEvent(item.VID, interfaceId), (support) => {
+          this.log.debug("got support event!");
+          resolve({ item, interface: interfaceName, support })});
         this.sendIsInterfaceSupported(item.VID, interfaceId);
       });
     }
   }
 
   sendGetInterfaces() {
-    this.serverConfiguration.write("<IIntrospection><GetInterfaces><call></call></GetInterfaces></IIntrospection>\n");
+    this.serverConfiguration.write("<IIntrospection><GetInterfaces><call></call></GetInterfaces></IIntrospection>\n", "ascii");
   }
 
   sendDownloadConfiguration() {
     if (!fs.existsSync(configurationPath)) {
       this.log.debug("sending configuration download");
-      this.serverConfiguration.write("<IBackup><GetFile><call>Backup\\Project.dc</call></GetFile></IBackup>\n");
+      this.serverConfiguration.write("<IBackup><GetFile><call>Backup\\Project.dc</call></GetFile></IBackup>\n", "ascii");
     }
   }
 
