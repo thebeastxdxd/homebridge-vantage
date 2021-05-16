@@ -1,7 +1,8 @@
 
 import { AccessoryPlugin, API, HAP, Logging, PlatformConfig, StaticPlatformPlugin, } from "homebridge";
 import { VantageLight } from "./vantage-light-accessory";
-import { VantageInfusionController, EndDownloadConfigurationEvent, LoadStatusChangeEvent } from "./vantage-infusion-controller";
+import { VantageThermostat } from "./vantage-thermostat-accessory";
+import { VantageInfusionController, EndDownloadConfigurationEvent, LoadStatusChangeEvent, ThermostatIndoorTemperatureChangeEvent, ThermostatOutdoorTemperatureChangeEvent } from "./vantage-infusion-controller";
 import * as xml2json from 'xml2json'
 
 const PLUGIN_NAME = "homebridge-vantage-static";
@@ -21,14 +22,14 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   private vantageController: VantageInfusionController;
   private interfaceSupportRequest: Array<Promise<void>>;
   private accessoriesDict: { [key in string]: AccessoryPlugin };
-  private accessoriesCallback:(foundAccessories: AccessoryPlugin[]) => void ;
+  private accessoriesCallback: (foundAccessories: AccessoryPlugin[]) => void;
   private api: API;
 
   constructor(log: Logging, config: PlatformConfig, api: API) {
     this.log = log;
     this.interfaceSupportRequest = [];
     this.accessoriesDict = {};
-    this.accessoriesCallback = () => {};
+    this.accessoriesCallback = () => { };
     this.api = api;
 
     if (config.controllerSendInterval) {
@@ -39,6 +40,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
     this.vantageController.on(EndDownloadConfigurationEvent, this.endDownloadConfigurationCallback.bind(this));
     this.vantageController.on(LoadStatusChangeEvent, this.loadStatusChangeCallback.bind(this));
+    this.vantageController.on(ThermostatIndoorTemperatureChangeEvent, this.thermostatOutdoorTemperatureChangeCallback.bind(this));
+    this.vantageController.on(ThermostatOutdoorTemperatureChangeEvent, this.thermostatOutdoorTemperatureChangeCallback.bind(this));
 
     this.vantageController.serverConfigurationDownload();
 
@@ -46,6 +49,25 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   }
 
   loadStatusChangeCallback(vid: string, value: number) {
+
+    if (this.accessoriesDict[vid] && this.accessoriesDict[vid] instanceof VantageLight) {
+      const accessory = this.accessoriesDict[vid] as VantageLight;
+      accessory.loadStatusChange(value);
+    }
+  }
+
+  thermostatOutdoorTemperatureChangeCallback(vid: string, value: number) {
+    if (this.accessoriesDict[vid] && this.accessoriesDict[vid] instanceof VantageThermostat) {
+      const accessory = this.accessoriesDict[vid] as VantageThermostat;
+      accessory.temperatureChange(value);
+    }
+  }
+
+  thermostatIndoorTemperatureChangeCallback(vid: string, value: number) {
+    if (this.accessoriesDict[vid] && this.accessoriesDict[vid] instanceof VantageThermostat) {
+      const accessory = this.accessoriesDict[vid] as VantageThermostat;
+      accessory.temperatureChange(value);
+    }
   }
 
   endDownloadConfigurationCallback(configurationString: string) {
@@ -101,7 +123,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     const promise = this.vantageController.isInterfaceSupported(item, "Thermostat").then((response) => {
       if (response.support) {
         this.log.info(`New HVAC added (VID=${item.VID}, Name=${item.Name}, THERMOSTAT)`);
-        //this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, item.Name);
+        this.accessoriesDict[item.VID] = new VantageThermostat(hap, this.log, response.item.Name, response.item.VID, this.vantageController);
       }
     });
 
@@ -119,8 +141,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
         const name = `${response.item.Area}-${response.item.Name}`;
         const loadType = this.getLoadType(response.item);
 
-        // this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, DIMMER)`);
-        this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, loadType);
+        this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, DIMMER)`);
+        this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController, loadType);
       }
     });
 

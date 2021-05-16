@@ -155,7 +155,7 @@ export class VantageInfusionController extends EventEmitter {
    * 
    * NOTE: this function was not tested.
   */
-  sendRGBLoadDissolveHSL(vid: string, h: number, s: number, l: number, time: number): void {
+  sendRGBLoadDissolveHSL(vid: string, h: number, s: number, l: number, time?: number): void {
     const thisTime = time || 500;
     this.sendControllerMessage(`INVOKE ${vid} RGBLoad.DissolveHSL ${h} ${s} ${l * 1000} ${thisTime}\n`);
   }
@@ -170,7 +170,7 @@ export class VantageInfusionController extends EventEmitter {
   /**
    * Send the set light level to the controller
   */
-  sendLoadDim(vid: string, level: number, time: number): void {
+  sendLoadDim(vid: string, level: number, time?: number): void {
     // TODO: reduce feedback (or command) rate
     const thisTime = time || 1;
     if (level > 0) {
