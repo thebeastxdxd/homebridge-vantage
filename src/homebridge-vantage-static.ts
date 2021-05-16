@@ -23,7 +23,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   private readonly log: Logging;
   private vantageController: VantageInfusionController;
   private interfaceSupportRequest: Array<Promise<void>>;
-  private accessoriesDict: { [key in string]: AccessoryPlugin };
+  private accessoriesDict: { [key: string]: AccessoryPlugin };
+  private vidNameMapping: { [key: string]: string};
   private accessoriesCallback: (foundAccessories: AccessoryPlugin[]) => void;
   private api: API;
 
@@ -31,6 +32,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log = log;
     this.interfaceSupportRequest = [];
     this.accessoriesDict = {};
+    this.vidNameMapping = {};
     this.accessoriesCallback = () => { };
     this.api = api;
 
@@ -38,6 +40,10 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       this.vantageController = new VantageInfusionController(this.log, config.ipaddress, config.controllerSendInterval);
     } else {
       this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
+    }
+
+    if (config.nameMapping) {
+      this.vidNameMapping = config.nameMapping; 
     }
 
     // add callbacks to events
@@ -52,8 +58,12 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.info("Done initializing homebridge vantage platform");
   }
 
-  loadStatusChangeCallback(vid: string, value: number) {
+  addVidNameMapping(configMapping: {[key: string]: string}) {
+    this.log.debug(typeof configMapping);
+    Object.entries(configMapping).map(([vid, name]) => this.vidNameMapping[vid] = name);
+  }
 
+  loadStatusChangeCallback(vid: string, value: number) {
     if (this.accessoriesDict[vid] && this.accessoriesDict[vid] instanceof VantageLight) {
       const accessory = this.accessoriesDict[vid] as VantageLight;
       accessory.loadStatusChange(value);
@@ -125,6 +135,9 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       this.accessoriesCallback(leftOverAccesssories);
     })
   }
+  additem(item: any, objectType: string) {
+
+  }
 
   // TODO: little bit a code duplication with addLoadObjectType
   addHVACObjectType(item: any) {
@@ -136,8 +149,16 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.info(`New HVAC asked (VID=${item.VID}, Name=${item.Name}, ---)`);
     const promise = this.vantageController.isInterfaceSupported(item, "Thermostat").then((response) => {
       if (response.support) {
+        let name = "";
+
+        if (response.item.VID in this.vidNameMapping) {
+          name = this.vidNameMapping[response.item.VID];
+        } else {
+          name = response.item.Name;
+        }
+
         this.log.info(`New HVAC added (VID=${item.VID}, Name=${item.Name}, THERMOSTAT)`);
-        this.accessoriesDict[item.VID] = new VantageThermostat(hap, this.log, response.item.Name, response.item.VID, this.vantageController);
+        this.accessoriesDict[item.VID] = new VantageThermostat(hap, this.log, name, response.item.VID, this.vantageController);
       }
     });
 
@@ -152,8 +173,14 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     const promise = this.vantageController.isInterfaceSupported(item, "Load").then((response) => {
       if (response.support) {
         // create a name with the area's name and the item's name
-        const name = `${response.item.Area}-${response.item.Name}`;
+        let name = "";
         const loadType = this.getLoadType(response.item);
+
+        if (response.item.VID in this.vidNameMapping) {
+          name = this.vidNameMapping[response.item.VID];
+        } else {
+          name = `${response.item.Area}-${response.item.Name}`;
+        }
 
         this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, DIMMER)`);
         this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController, loadType);
