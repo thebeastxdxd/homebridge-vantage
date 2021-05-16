@@ -122,7 +122,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       let leftOverAccesssories = accessories.slice(BRIDGE_ACCESSORY_LIMIT);
 
       this.log.info(`there are too many accessories for one bridge: ${accessories.length}`);
-      this.accessoriesCallback(platfromAccessories);
+      this.accessoriesCallback(leftOverAccesssories);
     })
   }
 

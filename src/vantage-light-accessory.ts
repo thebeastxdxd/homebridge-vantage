@@ -135,12 +135,10 @@ export class VantageLight implements AccessoryPlugin {
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
 
-    //this.lightService.getCharacteristic(this.hap.Characteristic.On).updateValue(this.lightOn);
-    this.lightService.getCharacteristic(this.hap.Characteristic.On).getValue(undefined, this.lightOn);
+    this.lightService.getCharacteristic(this.hap.Characteristic.On).updateValue(this.lightOn);
 
     if (this.loadType == "rgb" || this.loadType == "dimmer") {
-      //this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).updateValue(this.brightness);
-      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).getValue(undefined, this.brightness);
+      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).updateValue(this.brightness);
     }
   }
 
