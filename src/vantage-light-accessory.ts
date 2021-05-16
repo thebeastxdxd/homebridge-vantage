@@ -64,7 +64,9 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set state: ${value ? "ON" : "OFF"}`);
-        this.controller.sendLoadDim(this.vid, value ? 100 : 0);
+        this.lightOn = value as boolean;
+        this.brightness = this.lightOn ? 100 : 0;
+        this.controller.sendLoadDim(this.vid, this.brightness);
         callback();
       });
 
@@ -84,11 +86,13 @@ export class VantageLight implements AccessoryPlugin {
     this.lightService.getCharacteristic(this.hap.Characteristic.Brightness)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         this.log.debug(`lightbulb ${this.name} get brightness state: ${this.brightness}`);
-        callback(null, this.brightness);
+        callback(undefined, this.brightness);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
-        this.controller.sendLoadDim(this.vid, value as number);
+        this.brightness = value as number;
+        this.lightOn = (this.brightness > 0);
+        this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
         callback();
       });
   }
@@ -127,9 +131,12 @@ export class VantageLight implements AccessoryPlugin {
    */
   loadStatusChange(value: number) {
     this.log.debug(`status change brightness: ${value}`);
+    // TODO: kinda weird because we are changing the values here and also in the SET callbacks
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
+
     this.lightService.getCharacteristic(this.hap.Characteristic.On).updateValue(this.lightOn);
+
     if (this.loadType == "rgb" || this.loadType == "dimmer") {
       this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).updateValue(this.brightness);
     }
