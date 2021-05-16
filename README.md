@@ -1,8 +1,25 @@
-# This is still in progress.
-things left todo:
-1. rewrite in typescript
-2. implement configureAccessory
-# VantagePlugin
+# This plugin is a typescript rewrite of hfarina's old plugin 
+### Why am I doing this?
+I have a vantage controller at home and I wanted to controll it from my phone. Pretty simple. Very selfish.
+This means if there are features that are not used in my house I didn't not check them or give them a lot of thought.
+Nfarina add some cool features which I tried to keep intact **but** they were not tested and might totaly fail.
+### static plugin
+I choose to leave it as a static homebridge plugin, though it shouldn't be too hard to make a dyanmic version.
+### TODO
+1. rewrite in typescript - DONE (basically)
+2. add configuration vid to name mappings  
+3. solve the problem with bridge accessory limitations.
+## Some problems I faced
+The timeout between each sent commant to the controller was too low, making some commands fail.
+I put a pretty big timeout (also added a configurable variable) so now it takes a ton of time to 
+load the plugin (depending on home much accessories you have).
+
+I have a lot of lights in my house (around 250), and the limit for a bridge (and there for a plugin) is 149.
+this is annoying. still on my TOOD list to solve this.
+
+
+
+# OLD README VantagePlugin
 VantageControls InFusion plugin for homebridge: https://github.com/nfarina/homebridge
 
 VantageControls (http://www.vantagecontrols.com/) InFusion is an High End solution that can manage:

@@ -38,7 +38,6 @@ class VantageInfusion {
 		this.command = net.connect({ host: this.ipaddress, port: 3001 }, () => {
 			this.command.on('data', (data) => {
 				/* Data received */
-				this.log.debug(data.toString());
 				var lines = data.toString().split('\n');
 				for (var i = 0; i < lines.length; i++) {
 					var dataItem = lines[i].split(" ");
