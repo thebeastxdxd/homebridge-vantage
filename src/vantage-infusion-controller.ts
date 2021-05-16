@@ -30,7 +30,7 @@ export class VantageInfusionController extends EventEmitter {
   private serverController: net.Socket;
   private serverConfiguration: net.Socket;
 
-  constructor(log: Logging, ipaddress: string, controllerSendInterval: number = 500000) {
+  constructor(log: Logging, ipaddress: string, controllerSendInterval: number = 50000) {
     super();
     this.log = log;
     this.ipaddress = ipaddress;
