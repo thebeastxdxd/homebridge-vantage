@@ -58,8 +58,6 @@ export class VantageInfusionController extends EventEmitter {
       this.sendControllerMessage("STATUS ALL\n");
       this.sendControllerMessage("ELENABLE 1 AUTOMATION ON\nELENABLE 1 EVENT ON\nELENABLE 1 STATUS ON\nELENABLE 1 STATUSEX ON\nELENABLE 1 SYSTEM ON\nELLOG AUTOMATION ON\nELLOG EVENT ON\nELLOG STATUS ON\nELLOG STATUSEX ON\nELLOG SYSTEM ON\n");
 
-      // test!!!
-      this.sendControllerMessage("TASK 1083 0\n");
     });
   }
 
