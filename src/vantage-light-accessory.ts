@@ -130,15 +130,17 @@ export class VantageLight implements AccessoryPlugin {
    * this is called by the platfrom, whenever a loadStatusChange occures for this vid
    */
   loadStatusChange(value: number) {
-    this.log.debug(`status change brightness: ${value}`);
+    this.log.debug(`loadStatusChange (VID=${this.vid}, Name=${this.name}, Bri=${value}`);
     // TODO: kinda weird because we are changing the values here and also in the SET callbacks
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
 
-    this.lightService.getCharacteristic(this.hap.Characteristic.On).updateValue(this.lightOn);
+    //this.lightService.getCharacteristic(this.hap.Characteristic.On).updateValue(this.lightOn);
+    this.lightService.getCharacteristic(this.hap.Characteristic.On).getValue(undefined, this.lightOn);
 
     if (this.loadType == "rgb" || this.loadType == "dimmer") {
-      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).updateValue(this.brightness);
+      //this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).updateValue(this.brightness);
+      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).getValue(undefined, this.brightness);
     }
   }
 
