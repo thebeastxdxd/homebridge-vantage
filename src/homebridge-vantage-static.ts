@@ -8,6 +8,8 @@ import * as xml2json from 'xml2json'
 const PLUGIN_NAME = "homebridge-vantage-static";
 const PLATFORM_NAME = "VantageControls";
 
+const BRIDGE_ACCESSORY_LIMIT = 149;
+
 let hap: HAP;
 
 export = (api: API) => {
@@ -38,11 +40,13 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
     }
 
+    // add callbacks to events
     this.vantageController.on(EndDownloadConfigurationEvent, this.endDownloadConfigurationCallback.bind(this));
     this.vantageController.on(LoadStatusChangeEvent, this.loadStatusChangeCallback.bind(this));
     this.vantageController.on(ThermostatIndoorTemperatureChangeEvent, this.thermostatOutdoorTemperatureChangeCallback.bind(this));
     this.vantageController.on(ThermostatOutdoorTemperatureChangeEvent, this.thermostatOutdoorTemperatureChangeCallback.bind(this));
 
+    // start downloading server's database
     this.vantageController.serverConfigurationDownload();
 
     this.log.info("Done initializing homebridge vantage platform");
@@ -70,6 +74,9 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     }
   }
 
+  /*
+  * this callback will be called when we fully received the dc database from the controller (or from a saved file)
+  */
   endDownloadConfigurationCallback(configurationString: string) {
     this.log.info("Vantage Platfrom done Downloading configuration.");
     const configuration = JSON.parse(xml2json.toJson(configurationString));
@@ -94,6 +101,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       const mainItemkey = Object.keys(objectWrapper)[0];
       const item = objectWrapper[mainItemkey];
 
+      // TODO: when is this used?
       if (item.ExcludeFromWidgets === undefined || item.ExcludeFromWidgets == "False") {
         if (item.ObjectType == "HVAC") {
           this.addHVACObjectType(item);
@@ -104,17 +112,23 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       }
     });
 
+    // add the promise after all the requests were sent
     Promise.all(this.interfaceSupportRequest).then((_values: any[]) => {
       this.log.info(`adding ${_values.length} accessories`);
+
       let accessories = Object.values(this.accessoriesDict);
-      let platfromAccessories = accessories.slice(0, 149);
-      let leftOverAccesssories = accessories.slice(149);
+      let platfromAccessories = accessories.slice(0, BRIDGE_ACCESSORY_LIMIT);
+      // TODO: solve limit issue
+      let leftOverAccesssories = accessories.slice(BRIDGE_ACCESSORY_LIMIT);
+
       this.log.info(`there are too many accessories for one bridge: ${accessories.length}`);
       this.accessoriesCallback(platfromAccessories);
     })
   }
 
+  // TODO: little bit a code duplication with addLoadObjectType
   addHVACObjectType(item: any) {
+    // normalize to use Name instead of DName
     if (item.DName !== undefined && item.DName != "") {
       item.Name = item.DName;
     }
@@ -180,5 +194,4 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   accessories(callback: (foundAccessories: AccessoryPlugin[]) => void): void {
     this.accessoriesCallback = callback;
   }
-
 }

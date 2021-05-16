@@ -64,11 +64,9 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.lightOn = value as boolean;
-        if (this.lightOn && this.brightness == 0) {
-          this.brightness = 100;
-        }
+        this.brightness = this.lightOn ? 100 : 0;
 
-        this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
+        this.controller.sendLoadDim(this.vid, this.brightness);
         this.log.debug(`lightbulb ${this.name} set state: ${this.lightOn ? "ON" : "OFF"}`);
         callback();
       });
@@ -94,7 +92,7 @@ export class VantageLight implements AccessoryPlugin {
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
         this.brightness = value as number;
-        this.lightOn = value as boolean;
+        this.lightOn = (this.brightness > 0);
         this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
         callback();
       });
@@ -135,7 +133,10 @@ export class VantageLight implements AccessoryPlugin {
     this.log.debug(`status change brightness: ${value}`);
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
-    this.lightService.getCharacteristic(this.hap.Characteristic.On).setValue(value);
+    this.lightService.getCharacteristic(this.hap.Characteristic.On).setValue(this.lightOn);
+    if (this.loadType == "rgb" || this.loadType == "dimmer") {
+      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).setValue(this.brightness);
+    }
   }
 
 
