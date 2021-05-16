@@ -43,7 +43,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     // add callbacks to events
     this.vantageController.on(EndDownloadConfigurationEvent, this.endDownloadConfigurationCallback.bind(this));
     this.vantageController.on(LoadStatusChangeEvent, this.loadStatusChangeCallback.bind(this));
-    this.vantageController.on(ThermostatIndoorTemperatureChangeEvent, this.thermostatOutdoorTemperatureChangeCallback.bind(this));
+    this.vantageController.on(ThermostatIndoorTemperatureChangeEvent, this.thermostatIndoorTemperatureChangeCallback.bind(this));
     this.vantageController.on(ThermostatOutdoorTemperatureChangeEvent, this.thermostatOutdoorTemperatureChangeCallback.bind(this));
 
     // start downloading server's database
