@@ -63,11 +63,8 @@ export class VantageLight implements AccessoryPlugin {
         callback(undefined, this.lightOn);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-        this.lightOn = value as boolean;
-        this.brightness = this.lightOn ? 100 : 0;
-
-        this.controller.sendLoadDim(this.vid, this.brightness);
-        this.log.debug(`lightbulb ${this.name} set state: ${this.lightOn ? "ON" : "OFF"}`);
+        this.log.debug(`lightbulb ${this.name} set state: ${value ? "ON" : "OFF"}`);
+        this.controller.sendLoadDim(this.vid, value ? 100 : 0);
         callback();
       });
 
@@ -81,7 +78,7 @@ export class VantageLight implements AccessoryPlugin {
   }
 
   /*
-   * adds dimmer control to light server
+   * adds dimmer control to light service
    */
   addDimmerLightService() {
     this.lightService.getCharacteristic(this.hap.Characteristic.Brightness)
@@ -91,15 +88,14 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
-        this.brightness = value as number;
-        this.lightOn = (this.brightness > 0);
-        this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
+        this.controller.sendLoadDim(this.vid, value as number);
         callback();
       });
   }
 
   /*
-   * adds RGB control to light server
+   * adds RGB control to light service
+   * NOTE: this was not checked! Probably doesnt work
    */
   addRGBLightService() {
     this.lightService.getCharacteristic(this.hap.Characteristic.Saturation)
@@ -133,9 +129,9 @@ export class VantageLight implements AccessoryPlugin {
     this.log.debug(`status change brightness: ${value}`);
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
-    this.lightService.getCharacteristic(this.hap.Characteristic.On).setValue(this.lightOn);
+    this.lightService.getCharacteristic(this.hap.Characteristic.On).updateValue(this.lightOn);
     if (this.loadType == "rgb" || this.loadType == "dimmer") {
-      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).setValue(this.brightness);
+      this.lightService.getCharacteristic(this.hap.Characteristic.Brightness).updateValue(this.brightness);
     }
   }
 
