@@ -64,9 +64,6 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set state: ${value ? "ON" : "OFF"}`);
-        // this.lightOn = value as boolean;
-        // this.brightness = this.lightOn ? 100 : 0;
-        // this.controller.sendLoadDim(this.vid, this.brightness);
         this.controller.sendLoadDim(this.vid, value as boolean ? 100 : 0);
         callback();
       });
@@ -91,9 +88,6 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
-        // this.brightness = value as number;
-        // this.lightOn = (this.brightness > 0);
-        // this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
         this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
         callback();
       });
@@ -133,7 +127,6 @@ export class VantageLight implements AccessoryPlugin {
    */
   loadStatusChange(value: number) {
     this.log.debug(`loadStatusChange (VID=${this.vid}, Name=${this.name}, Bri=${value}`);
-    // TODO: kinda weird because we are changing the values here and also in the SET callbacks
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
 

@@ -57,6 +57,9 @@ export class VantageInfusionController extends EventEmitter {
     this.serverController.connect({ host: this.ipaddress, port: serverControllerPort }, () => {
       this.sendControllerMessage("STATUS ALL\n");
       this.sendControllerMessage("ELENABLE 1 AUTOMATION ON\nELENABLE 1 EVENT ON\nELENABLE 1 STATUS ON\nELENABLE 1 STATUSEX ON\nELENABLE 1 SYSTEM ON\nELLOG AUTOMATION ON\nELLOG EVENT ON\nELLOG STATUS ON\nELLOG STATUSEX ON\nELLOG SYSTEM ON\n");
+
+      // test!!!
+      this.sendControllerMessage("TASK 1083 0\n");
     });
   }
 
@@ -98,7 +101,7 @@ export class VantageInfusionController extends EventEmitter {
         this.emit(ThermostatOutdoorTemperatureChangeEvent, vid, value);
       }
 
-      if (line.startsWith("R:INVOKE") && command[3] == "hermostat.GetOutdoorTemperature") {
+      if (line.startsWith("R:INVOKE") && command[3] == "Thermostat.GetOutdoorTemperature") {
         const vid = parseInt(command[1]);
         const value = parseFloat(command[2])
         this.emit(ThermostatOutdoorTemperatureChangeEvent, vid, value);
