@@ -24,7 +24,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   private vantageController: VantageInfusionController;
   private interfaceSupportRequest: Array<Promise<void>>;
   private accessoriesDict: { [key: string]: AccessoryPlugin };
-  private vidNameMapping: { [key: string]: string};
+  private vidNameMapping: { [key: string]: string };
+  private whitelist: Array<string>;
   private accessoriesCallback: (foundAccessories: AccessoryPlugin[]) => void;
   private api: API;
 
@@ -33,6 +34,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.interfaceSupportRequest = [];
     this.accessoriesDict = {};
     this.vidNameMapping = {};
+    this.whitelist = [];
     this.accessoriesCallback = () => { };
     this.api = api;
 
@@ -43,7 +45,11 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     }
 
     if (config.nameMapping) {
-      this.vidNameMapping = config.nameMapping; 
+      this.vidNameMapping = config.nameMapping;
+    }
+
+    if (config.whitelist) {
+      this.whitelist = config.whitelist;
     }
 
     // add callbacks to events
@@ -58,9 +64,12 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.info("Done initializing homebridge vantage platform");
   }
 
-  addVidNameMapping(configMapping: {[key: string]: string}) {
-    this.log.debug(typeof configMapping);
-    Object.entries(configMapping).map(([vid, name]) => this.vidNameMapping[vid] = name);
+  vidToName(vid: string): string {
+    if (this.vidNameMapping && vid in this.vidNameMapping) {
+      return this.vidNameMapping[vid];
+    } else {
+      return "";
+    }
   }
 
   loadStatusChangeCallback(vid: string, value: number) {
@@ -89,54 +98,71 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   */
   endDownloadConfigurationCallback(configurationString: string) {
     this.log.info("Vantage Platfrom done Downloading configuration.");
+
     const configuration = JSON.parse(xml2json.toJson(configurationString));
+
     configuration.Project.Objects.Object.forEach((objectWrapper: any) => {
-      /*   
-      Example for an item
-      <Object> <-- objectWrapper
-        <Category VID="21" Master="22" MTime=""> <-- mainItemKey
-          <Name>HVAC</Name> <-- item
-          <Model>
-          </Model>
-          <Note>
-          </Note>
-          <DName>
-          </DName>
-          <ObjectType>Category</ObjectType>
-          <Category>7</Category>
-          <Location>3</Location>
-        </Category>
-      </Object>
-      */
       const mainItemkey = Object.keys(objectWrapper)[0];
       const item = objectWrapper[mainItemkey];
+      const itemAreaName = item.Area ? this.getAreaName(configuration.Project.Objects.object, item.Area) : "";
 
-      // TODO: when is this used?
-      if (item.ExcludeFromWidgets === undefined || item.ExcludeFromWidgets == "False") {
-        if (item.ObjectType == "HVAC") {
-          this.addHVACObjectType(item);
-        }
-        if (item.ObjectType == "Load") {
-          this.addLoadObjectType(configuration.Project.Objects.Object, item);
-        }
-      }
+      this.addItem(item, itemAreaName);
     });
 
     // add the promise after all the requests were sent
     Promise.all(this.interfaceSupportRequest).then((_values: any[]) => {
-      this.log.info(`adding ${_values.length} accessories`);
-
       let accessories = Object.values(this.accessoriesDict);
-      let platfromAccessories = accessories.slice(0, BRIDGE_ACCESSORY_LIMIT);
-      // TODO: solve limit issue
-      let leftOverAccesssories = accessories.slice(BRIDGE_ACCESSORY_LIMIT);
 
-      this.log.info(`there are too many accessories for one bridge: ${accessories.length}`);
-      this.accessoriesCallback(leftOverAccesssories);
+      if (accessories.length > BRIDGE_ACCESSORY_LIMIT) {
+        this.log.info(`there are too many accessories for one bridge: ${accessories.length}`);
+        let platfromAccessories = accessories.slice(0, BRIDGE_ACCESSORY_LIMIT);
+        let leftOverAccesssories = accessories.slice(BRIDGE_ACCESSORY_LIMIT);
+        this.accessoriesCallback(leftOverAccesssories);
+      } else {
+        this.accessoriesCallback(accessories);
+      }
     })
   }
-  additem(item: any, objectType: string) {
 
+  checkWhitelist(vid: string) {
+    if (this.whitelist.length === 0) {
+      return true;
+    } else {
+      return this.whitelist.includes(vid);
+    }
+  }
+
+  /*   
+  Example for an item
+  <Object> <-- objectWrapper
+    <Category VID="21" Master="22" MTime=""> <-- mainItemKey
+      <Name>HVAC</Name> <-- item
+      <Model>
+      </Model>
+      <Note>
+      </Note>
+      <DName>
+      </DName>
+      <ObjectType>Category</ObjectType>
+      <Category>7</Category>
+      <Location>3</Location>
+    </Category>
+  </Object>
+  */
+  addItem(item: any, areaName: string) {
+    if (this.checkWhitelist(item.VID)) {
+      if (item.ObjectType == "HVAC") {
+        this.addHVACObjectType(item);
+      }
+      if (item.ObjectType == "Load") {
+        this.addLoadObjectType(item, areaName);
+      }
+    }
+  }
+
+  addInterfaceSupportPromise(item: any, objectType: string, callback: any) {
+    const promise = this.vantageController.isInterfaceSupported(item, objectType).then((response) => callback(response));
+    this.interfaceSupportRequest.push(promise);
   }
 
   // TODO: little bit a code duplication with addLoadObjectType
@@ -145,49 +171,37 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     if (item.DName !== undefined && item.DName != "") {
       item.Name = item.DName;
     }
-
-    this.log.info(`New HVAC asked (VID=${item.VID}, Name=${item.Name}, ---)`);
-    const promise = this.vantageController.isInterfaceSupported(item, "Thermostat").then((response) => {
+    this.log.debug(`New HVAC asked (VID=${item.VID}, Name=${item.Name}, ---)`);
+    const callback = (response: { item: any, interface: string, support: boolean }) => {
       if (response.support) {
-        let name = "";
-
-        if (response.item.VID in this.vidNameMapping) {
-          name = this.vidNameMapping[response.item.VID];
-        } else {
-          name = response.item.Name;
-        }
+        const name = this.vidToName(response.item.Name) || response.item.Name;
 
         this.log.info(`New HVAC added (VID=${item.VID}, Name=${item.Name}, THERMOSTAT)`);
         this.accessoriesDict[item.VID] = new VantageThermostat(hap, this.log, name, response.item.VID, this.vantageController);
       }
-    });
+    };
 
-    this.interfaceSupportRequest.push(promise);
+    this.addInterfaceSupportPromise(item, "Thermostat", callback);
   }
 
-  addLoadObjectType(objects: any, item: any) {
-
-    this.log.info(`New load asked (VID=${item.VID}, Name=${item.Name}, ---)`)
+  addLoadObjectType(item: any, areaName: string) {
     // change Area vid to the corresponding Area object's name
-    item.Area = this.getAreaName(objects, item.Area);
-    const promise = this.vantageController.isInterfaceSupported(item, "Load").then((response) => {
+    item.Area = areaName; 
+
+    this.log.debug(`New load asked (VID=${item.VID}, Name=${item.Name}, ---)`)
+    const callback = (response: { item: any, interface: string, support: boolean }) => {
       if (response.support) {
         // create a name with the area's name and the item's name
-        let name = "";
         const loadType = this.getLoadType(response.item);
+        const name = this.vidToName(response.item.Name) || `${response.item.Area}-${response.item.Name}`;
 
-        if (response.item.VID in this.vidNameMapping) {
-          name = this.vidNameMapping[response.item.VID];
-        } else {
-          name = `${response.item.Area}-${response.item.Name}`;
-        }
-
-        this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, DIMMER)`);
+        this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, ${loadType})`);
         this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController, loadType);
       }
-    });
+    };
 
-    this.interfaceSupportRequest.push(promise);
+    this.addInterfaceSupportPromise(item, "Load", callback);
+
   }
 
   /*
