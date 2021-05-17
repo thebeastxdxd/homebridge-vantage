@@ -1,4 +1,4 @@
-# This plugin is a typescript rewrite of hfarina's old plugin 
+# This plugin is a typescript rewrite of angeloxx's old plugin 
 I didn't really add or remove (atleast I think I didn't) any features.
 ### Why am I doing this?
 I have a vantage controller at home and I wanted to controll it from my phone. Pretty simple. Very selfish.
@@ -14,7 +14,7 @@ load the plugin (depending on home much accessories you have).
 I have a lot of lights in my house (around 250), and the limit for a bridge (and there for a plugin) is 149.
 this is annoying. still on my TOOD list to solve this.
 
-## some new features
+## Some new features
 ### vid to name mappings
 The lights in my house were really badly named and I didn't want to change it everytime I reset homebridge.
 in the config.json you can add nameMapping:
@@ -44,30 +44,30 @@ Combined with the whitelist feature you can choose the vids (accessories) you wa
 it will look something like this:
 
 ```
-     {
-            "platform": "VantageControls",
-            "name": "VantageControls",
-            "ipaddress": "1.1.1.1",
-            "_bridge": {
-                "username": "00:00:00:00:00:00,
-                "port": 46202
-            },
-            "whitelist": [
-                "751"
-            ]
+    {
+        "platform": "VantageControls",
+        "name": "VantageControls",
+        "ipaddress": "1.1.1.1",
+        "_bridge": {
+            "username": "00:00:00:00:00:00,
+            "port": 46202
         },
-        {
-            "platform": "VantageControls",
-            "name": "VantageControls",
-            "ipaddress": "1.1.1.1",
-            "whitelist": [
-                "804"
-            ],
-            "_bridge": {
-                "username": "00:00:00:00:00:00,
-                "port": 56210
-            }
+        "whitelist": [
+            "751"
+        ]
+    },
+    {
+        "platform": "VantageControls",
+        "name": "VantageControls",
+        "ipaddress": "1.1.1.1",
+        "whitelist": [
+            "804"
+        ],
+        "_bridge": {
+            "username": "00:00:00:00:00:00,
+            "port": 56210
         }
+    }
 ```
 *the values are fake*
 
