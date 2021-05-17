@@ -65,7 +65,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   }
 
   vidToName(vid: string): string {
-    if (this.vidNameMapping && vid in this.vidNameMapping) {
+    const mappingsKeys = Object.keys(this.vidNameMapping);
+    if (mappingsKeys.length !== 0 && mappingsKeys.includes(vid)) {
       return this.vidNameMapping[vid];
     } else {
       return "";
@@ -191,7 +192,6 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.debug(`New load asked (VID=${item.VID}, Name=${item.Name}, ---)`)
     const callback = (response: { item: any, interface: string, support: boolean }) => {
       if (response.support) {
-        // create a name with the area's name and the item's name
         const loadType = this.getLoadType(response.item);
         const name = this.vidToName(response.item.Name) || `${response.item.Area}-${response.item.Name}`;
 
