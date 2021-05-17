@@ -175,7 +175,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.debug(`New HVAC asked (VID=${item.VID}, Name=${item.Name}, ---)`);
     const callback = (response: { item: any, interface: string, support: boolean }) => {
       if (response.support) {
-        const name = this.vidToName(response.item.Name) || response.item.Name;
+        const name = this.vidToName(response.item.VID) || response.item.Name;
 
         this.log.info(`New HVAC added (VID=${item.VID}, Name=${item.Name}, THERMOSTAT)`);
         this.accessoriesDict[item.VID] = new VantageThermostat(hap, this.log, name, response.item.VID, this.vantageController);
@@ -193,7 +193,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     const callback = (response: { item: any, interface: string, support: boolean }) => {
       if (response.support) {
         const loadType = this.getLoadType(response.item);
-        const name = this.vidToName(response.item.Name) || `${response.item.Area}-${response.item.Name}`;
+        const name = this.vidToName(response.item.VID) || `${response.item.Area}-${response.item.Name}`;
 
         this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, ${loadType})`);
         this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController, loadType);
