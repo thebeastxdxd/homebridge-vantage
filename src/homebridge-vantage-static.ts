@@ -208,14 +208,14 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
    * Find item's matching Area object, return its name.
    */
   getAreaName(objects: any, areaVid: string) {
-    const areaObject = objects.filter((object: any) => {
+    const areaObject: Array<any> = objects.filter((object: any) => {
       if (object.Area === undefined) {
         return false;
       }
       return object.Area.VID === areaVid;
     });
 
-    if (areaObject === undefined) {
+    if (areaObject.length === 0) {
       return "";
     }
 
