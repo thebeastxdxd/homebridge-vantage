@@ -14,8 +14,8 @@ load the plugin (depending on home much accessories you have).
 I have a lot of lights in my house (around 250), and the limit for a bridge (and there for a plugin) is 149.
 this is annoying. still on my TOOD list to solve this.
 
-### some new features
-## vid to name mappings
+## some new features
+### vid to name mappings
 The lights in my house were really badly named and I didn't want to change it everytime I reset homebridge.
 in the config.json you can add nameMapping:
 ```
@@ -27,7 +27,7 @@ in the config.json you can add nameMapping:
     }
 ```
 
-## whitelist
+### whitelist
 this feature allows you to only add the vids you want:
 
 ```
@@ -37,7 +37,7 @@ this feature allows you to only add the vids you want:
     }
 ```
 
-## How I solved the 149 accessory limit
+### How I solved the 149 accessory limit
 With Homebridge v1.3.0 or later they added a feature called child bridge. [Read more here](https://github.com/homebridge/homebridge/wiki/Child-Bridges)
 This lets you add plugins and platfroms in different process.
 Combined with the whitelist feature you can choose the vids (accessories) you want on each child bridge.
