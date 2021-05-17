@@ -104,7 +104,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     configuration.Project.Objects.Object.forEach((objectWrapper: any) => {
       const mainItemkey = Object.keys(objectWrapper)[0];
       const item = objectWrapper[mainItemkey];
-      const itemAreaName = item.Area ? this.getAreaName(configuration.Project.Objects.object, item.Area) : "";
+      const itemAreaName = item.Area ? this.getAreaName(configuration.Project.Objects.Object, item.Area) : "";
 
       this.addItem(item, itemAreaName);
     });
