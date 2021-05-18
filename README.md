@@ -71,6 +71,14 @@ it will look something like this:
 ```
 *the values are fake*
 
+## DIY
+If you are interested in adding your own features or are just curious about how it works, here how:
+1. You are gonna need to figure out what is the IP of your VantageControls system.
+2. Open a telnet session (putty is nice) to its IP:3001 (looks like the default port for the service)
+3. Type `help` it should print all of the available commands.
+4. [a very useful link](https://forum.roomieremote.com/t/vantage-controls-infusion-lighting-system/1097/3)
+5. Enjoy!
+
 # OLD README VantagePlugin
 VantageControls InFusion plugin for homebridge: https://github.com/nfarina/homebridge
 
