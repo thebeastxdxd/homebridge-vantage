@@ -1,23 +1,83 @@
-# This plugin is a typescript rewrite of hfarina's old plugin 
+# This plugin is a typescript rewrite of angeloxx's old plugin 
+I didn't really add or remove (atleast I think I didn't) any features.
 ### Why am I doing this?
 I have a vantage controller at home and I wanted to controll it from my phone. Pretty simple. Very selfish.
 This means if there are features that are not used in my house I didn't not check them or give them a lot of thought.
 Nfarina add some cool features which I tried to keep intact **but** they were not tested and might totaly fail.
 ### static plugin
-I choose to leave it as a static homebridge plugin, though it shouldn't be too hard to make a dyanmic version.
-### TODO
-1. rewrite in typescript - DONE (basically)
-2. add configuration vid to name mappings  
-3. solve the problem with bridge accessory limitations.
+I choose to leave it as a static homebridge plugin, though it shouldn't be too hard to make a dynamic version.
 ## Some problems I faced
-The timeout between each sent commant to the controller was too low, making some commands fail.
+The timeout between each sent command to the controller was too low, making some commands fail.
 I put a pretty big timeout (also added a configurable variable) so now it takes a ton of time to 
 load the plugin (depending on home much accessories you have).
 
 I have a lot of lights in my house (around 250), and the limit for a bridge (and there for a plugin) is 149.
 this is annoying. still on my TOOD list to solve this.
 
+## Some new features
+### vid to name mappings
+The lights in my house were really badly named and I didn't want to change it everytime I reset homebridge.
+in the config.json you can add nameMapping:
+```
+    {
+        ...under platfrom
+        "nameMapping": {
+            "vid": "name"
+        }
+    }
+```
 
+### whitelist
+this feature allows you to only add the vids you want:
+
+```
+    {
+        ...under platfrom
+        "whitelist": ["vid1", "vid2"]
+    }
+```
+
+### How I solved the 149 accessory limit
+With Homebridge v1.3.0 or later they added a feature called child bridge. [Read more here](https://github.com/homebridge/homebridge/wiki/Child-Bridges)
+This lets you add plugins and platfroms in different process.
+Combined with the whitelist feature you can choose the vids (accessories) you want on each child bridge.
+it will look something like this:
+
+```
+    {
+        "platform": "VantageControls",
+        "name": "VantageControls",
+        "ipaddress": "1.1.1.1",
+        "_bridge": {
+            "username": "00:00:00:00:00:00,
+            "port": 46202
+        },
+        "whitelist": [
+            "751"
+        ]
+    },
+    {
+        "platform": "VantageControls",
+        "name": "VantageControls",
+        "ipaddress": "1.1.1.1",
+        "whitelist": [
+            "804"
+        ],
+        "_bridge": {
+            "username": "00:00:00:00:00:00,
+            "port": 56210
+        }
+    }
+```
+*the values are fake*
+
+## DIY
+If you are interested in adding your own features or are just curious about how it works, here how:
+1. You are gonna need to figure out what is the IP of your VantageControls system.
+2. Open a telnet session (putty is nice) to its IP:3001 (looks like the default port for the service)
+3. Type `help` it should print all of the available commands.
+4. [a very useful link](https://forum.roomieremote.com/t/vantage-controls-infusion-lighting-system/1097/3)
+5. Enjoy!
 
 # OLD README VantagePlugin
 VantageControls InFusion plugin for homebridge: https://github.com/nfarina/homebridge
@@ -43,7 +103,11 @@ Add platform within config.json of you homebridge instance:
     {
         "platforms": [{
             "platform": "VantageControls",
-            "ipaddress": "192.168.1.1"
+            "ipaddress": "192.168.1.1",
+            "nameMapping": {
+                "vid": "name"
+            },
+            "whitelist": ["vid1", "vid2"]
             }], 
         "bridge": {
             "username": "CC:22:3D:E3:CE:31", 
