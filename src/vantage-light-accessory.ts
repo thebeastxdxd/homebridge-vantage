@@ -88,7 +88,7 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
-        this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
+        this.controller.sendLoadDim(this.vid, this.lightOn ? value as number : 0);
         callback();
       });
   }
