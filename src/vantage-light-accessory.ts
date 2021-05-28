@@ -64,7 +64,9 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set state: ${value ? "ON" : "OFF"}`);
-        this.controller.sendLoadDim(this.vid, value as boolean ? 100 : 0);
+        this.lightOn = value as boolean;
+        this.brightness = this.lightOn ? 100 : 0;
+        this.controller.sendLoadDim(this.vid, this.brightness);
         callback();
       });
 
@@ -88,7 +90,9 @@ export class VantageLight implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
-        this.controller.sendLoadDim(this.vid, this.lightOn ? value as number : 0);
+        this.brightness = value as number;
+        this.lightOn = this.brightness > 0 ? true : false;
+        this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
         callback();
       });
   }
@@ -123,7 +127,10 @@ export class VantageLight implements AccessoryPlugin {
 
 
   /*
-   * this is called by the platfrom, whenever a loadStatusChange occures for this vid
+   * this is called by the platfrom, whenever a loadStatusChange occures for this vid.
+   * NOTE: When changing the value vai home we send a command to the VantageController. 
+   *       This will return a loadStatusChange, but we already changed the values, meaning the same value change happens twice.
+   *       This is ineffiecent but shouldn't make any problems. We do this so we can remove the delay when using home.
    */
   loadStatusChange(value: number) {
     this.log.debug(`loadStatusChange (VID=${this.vid}, Name=${this.name}, Bri=${value}`);
