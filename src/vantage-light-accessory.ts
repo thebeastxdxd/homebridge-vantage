@@ -1,3 +1,4 @@
+import { timeStamp } from "console";
 import {
   AccessoryPlugin,
   CharacteristicGetCallback,
@@ -25,6 +26,7 @@ export class VantageLight implements AccessoryPlugin {
   private saturation: number;
   private hue: number;
   private loadType: string;
+  private dimmerRequestTimer: any;
 
 
   // This property must be existent!!
@@ -43,6 +45,7 @@ export class VantageLight implements AccessoryPlugin {
     this.saturation = 0;
     this.hue = 0;
     this.loadType = loadType;
+    this.dimmerRequestTimer = undefined;
 
     this.lightService = new hap.Service.Lightbulb(name);
     this.addLightService();
@@ -79,6 +82,13 @@ export class VantageLight implements AccessoryPlugin {
     }
   }
 
+  dispatchDimmerRequest() {
+    this.dimmerRequestTimer = setTimeout(() => {
+      this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
+      this.dimmerRequestTimer = undefined;
+    }, 50);
+  }
+
   /*
    * adds dimmer control to light service
    */
@@ -92,7 +102,15 @@ export class VantageLight implements AccessoryPlugin {
         this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
         this.brightness = value as number;
         this.lightOn = this.brightness > 0 ? true : false;
-        this.controller.sendLoadDim(this.vid, this.lightOn ? this.brightness : 0);
+
+        if (this.dimmerRequestTimer == undefined) {
+          this.dispatchDimmerRequest();
+
+        } else {
+          clearTimeout(this.dimmerRequestTimer);
+          this.dispatchDimmerRequest();
+        }
+
         callback();
       });
   }
