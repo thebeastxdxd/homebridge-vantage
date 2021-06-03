@@ -1,4 +1,3 @@
-import { timeStamp } from "console";
 import {
   AccessoryPlugin,
   CharacteristicGetCallback,
@@ -8,9 +7,7 @@ import {
   Logging,
   Service,
   CharacteristicEventTypes,
-  Characteristic
 } from "homebridge";
-import { on } from "process";
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
 

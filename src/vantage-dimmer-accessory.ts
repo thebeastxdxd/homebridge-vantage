@@ -1,4 +1,3 @@
-import { timeStamp } from "console";
 import {
   AccessoryPlugin,
   CharacteristicGetCallback,
@@ -8,9 +7,7 @@ import {
   Logging,
   Service,
   CharacteristicEventTypes,
-  Characteristic
 } from "homebridge";
-import { on } from "process";
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
 
@@ -28,13 +25,13 @@ export class VantageDimmer implements AccessoryPlugin {
   private loadType: string;
   private dimmerRequestTimer: any;
 
-
   // This property must be existent!!
   name: string;
 
   private readonly lightService: Service;
   private readonly informationService: Service;
 
+  // TODO: dont need loadType, but because of rgb it is kept.
   constructor(hap: HAP, log: Logging, name: string, vid: string, controller: VantageInfusionController, loadType: string) {
     this.log = log;
     this.hap = hap;
