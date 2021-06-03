@@ -59,11 +59,11 @@ export class VantageDimmer implements AccessoryPlugin {
   addLightService() {
     this.lightService.getCharacteristic(this.hap.Characteristic.On)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
-        this.log.debug(`lightbulb ${this.name} get state: ${this.lightOn ? "ON" : "OFF"}`);
+        this.log.debug(`Dimmer ${this.name} get state: ${this.lightOn ? "ON" : "OFF"}`);
         callback(undefined, this.lightOn);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-        this.log.debug(`lightbulb ${this.name} set state: ${value ? "ON" : "OFF"}`);
+        this.log.debug(`Dimmer ${this.name} set state: ${value ? "ON" : "OFF"}`);
         this.lightOn = value as boolean;
         callback();
       });
@@ -90,11 +90,11 @@ export class VantageDimmer implements AccessoryPlugin {
   addDimmerLightService() {
     this.lightService.getCharacteristic(this.hap.Characteristic.Brightness)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
-        this.log.debug(`lightbulb ${this.name} get brightness state: ${this.brightness}`);
+        this.log.debug(`Dimmer ${this.name} get brightness state: ${this.brightness}`);
         callback(undefined, this.brightness);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
-        this.log.debug(`lightbulb ${this.name} set brightness state: ${value}`);
+        this.log.debug(`Dimmer ${this.name} set brightness state: ${value}`);
         this.brightness = value as number;
         this.lightOn = this.brightness > 0 ? true : false;
 
@@ -146,7 +146,7 @@ export class VantageDimmer implements AccessoryPlugin {
    *       This is ineffiecent but shouldn't make any problems. We do this so we can remove the delay when using home.
    */
   loadStatusChange(value: number) {
-    this.log.debug(`loadStatusChange (VID=${this.vid}, Name=${this.name}, Bri=${value}`);
+    this.log.debug(`Dimmer loadStatusChange (VID=${this.vid}, Name=${this.name}, Bri=${value}`);
     this.brightness = value;
     this.lightOn = (this.brightness > 0);
 

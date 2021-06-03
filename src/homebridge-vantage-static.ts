@@ -2,6 +2,7 @@
 import { AccessoryPlugin, API, HAP, Logging, PlatformConfig, StaticPlatformPlugin, } from "homebridge";
 import { VantageLight } from "./vantage-light-accessory";
 import { VantageDimmer } from "./vantage-dimmer-accessory";
+import { VantageFan } from "./vantage-fan-accessory";
 import { VantageThermostat } from "./vantage-thermostat-accessory";
 import { VantageInfusionController, EndDownloadConfigurationEvent, LoadStatusChangeEvent, ThermostatIndoorTemperatureChangeEvent, ThermostatOutdoorTemperatureChangeEvent } from "./vantage-infusion-controller";
 import * as xml2json from 'xml2json'
@@ -25,7 +26,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   private vantageController: VantageInfusionController;
   private interfaceSupportRequest: Array<Promise<void>>;
   private accessoriesDict: { [key: string]: AccessoryPlugin };
-  private vidNameMapping: { [key: string]: string };
+  private vidMapping: { [key: string]: { "Name"?: string, "Type"?: string } };
   private whitelist: Array<string>;
   private accessoriesCallback: (foundAccessories: AccessoryPlugin[]) => void;
   private api: API;
@@ -34,7 +35,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log = log;
     this.interfaceSupportRequest = [];
     this.accessoriesDict = {};
-    this.vidNameMapping = {};
+    this.vidMapping = {};
     this.whitelist = [];
     this.accessoriesCallback = () => { };
     this.api = api;
@@ -45,8 +46,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
       this.vantageController = new VantageInfusionController(this.log, config.ipaddress);
     }
 
-    if (config.nameMapping) {
-      this.vidNameMapping = config.nameMapping;
+    if (config.vidMapping) {
+      this.vidMapping = config.vidMapping;
     }
 
     if (config.whitelist) {
@@ -65,10 +66,19 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.info("Done initializing homebridge vantage platform");
   }
 
-  vidToName(vid: string): string {
-    const mappingsKeys = Object.keys(this.vidNameMapping);
-    if (mappingsKeys.length !== 0 && mappingsKeys.includes(vid)) {
-      return this.vidNameMapping[vid];
+  vidToName(vid: string): string | undefined {
+    const mappingsKeys = Object.keys(this.vidMapping);
+    if (mappingsKeys.length !== 0 && mappingsKeys.includes(vid) && this.vidMapping[vid]["Name"]) {
+      return this.vidMapping[vid]["Name"];
+    } else {
+      return "";
+    }
+  }
+
+  vidToType(vid: string): string | undefined {
+    const mappingsKeys = Object.keys(this.vidMapping);
+    if (mappingsKeys.length !== 0 && mappingsKeys.includes(vid) && this.vidMapping[vid]["Type"]) {
+      return this.vidMapping[vid]["Type"];
     } else {
       return "";
     }
@@ -194,15 +204,24 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
     this.log.debug(`New load asked (VID=${item.VID}, Name=${item.Name}, ---)`)
     const callback = (response: { item: any, interface: string, support: boolean }) => {
       if (response.support) {
-        const loadType = this.getLoadType(response.item);
+        let loadType: string | undefined = "";
+        if (this.vidToType(response.item.VID) !== "") {
+          loadType = this.vidToType(response.item.VID);
+        } else {
+          loadType = this.getLoadType(response.item);
+        }
+
         const name = this.vidToName(response.item.VID) || `${response.item.Area}-${response.item.Name}`;
 
-        this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, ${loadType})`);
-        if (loadType == "dimmer") {
-          this.accessoriesDict[item.VID] = new VantageDimmer(hap, this.log, name, response.item.VID, this.vantageController, loadType);
+        this.log.info(`New load added (VID=${response.item.VID}, Name=${response.item.Name}, ${loadType})`);
+
+        if (loadType == "fan") {
+          this.accessoriesDict[response.item.VID] = new VantageFan(hap, this.log, name, response.item.VID, this.vantageController);
+        } else if (loadType == "dimmer") {
+          this.accessoriesDict[response.item.VID] = new VantageDimmer(hap, this.log, name, response.item.VID, this.vantageController, loadType);
         } else {
           // normal light 
-          this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController);
+          this.accessoriesDict[response.item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController);
         }
       }
     };
