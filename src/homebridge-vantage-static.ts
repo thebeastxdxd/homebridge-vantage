@@ -1,6 +1,7 @@
 
 import { AccessoryPlugin, API, HAP, Logging, PlatformConfig, StaticPlatformPlugin, } from "homebridge";
 import { VantageLight } from "./vantage-light-accessory";
+import { VantageDimmer } from "./vantage-dimmer-accessory";
 import { VantageThermostat } from "./vantage-thermostat-accessory";
 import { VantageInfusionController, EndDownloadConfigurationEvent, LoadStatusChangeEvent, ThermostatIndoorTemperatureChangeEvent, ThermostatOutdoorTemperatureChangeEvent } from "./vantage-infusion-controller";
 import * as xml2json from 'xml2json'
@@ -74,6 +75,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   }
 
   loadStatusChangeCallback(vid: string, value: number) {
+    // TODO: this needs to work with dimmer
     if (this.accessoriesDict[vid] && this.accessoriesDict[vid] instanceof VantageLight) {
       const accessory = this.accessoriesDict[vid] as VantageLight;
       accessory.loadStatusChange(value);
@@ -187,7 +189,7 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
 
   addLoadObjectType(item: any, areaName: string) {
     // change Area vid to the corresponding Area object's name
-    item.Area = areaName; 
+    item.Area = areaName;
 
     this.log.debug(`New load asked (VID=${item.VID}, Name=${item.Name}, ---)`)
     const callback = (response: { item: any, interface: string, support: boolean }) => {
@@ -196,7 +198,12 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
         const name = this.vidToName(response.item.VID) || `${response.item.Area}-${response.item.Name}`;
 
         this.log.info(`New load added (VID=${item.VID}, Name=${item.Name}, ${loadType})`);
-        this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController, loadType);
+        if (loadType == "dimmer") {
+          this.accessoriesDict[item.VID] = new VantageDimmer(hap, this.log, name, response.item.VID, this.vantageController, loadType);
+        } else {
+          // normal light 
+          this.accessoriesDict[item.VID] = new VantageLight(hap, this.log, name, response.item.VID, this.vantageController);
+        }
       }
     };
 
