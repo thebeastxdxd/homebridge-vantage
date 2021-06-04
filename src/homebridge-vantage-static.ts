@@ -4,6 +4,7 @@ import { VantageLight } from "./vantage-light-accessory";
 import { VantageDimmer } from "./vantage-dimmer-accessory";
 import { VantageFan } from "./vantage-fan-accessory";
 import { VantageSwitch } from "./vantage-switch-accessory";
+import { VantageOutlet } from "./vantage-outlet-accessory";
 import { VantageThermostat } from "./vantage-thermostat-accessory";
 import { VantageInfusionController, EndDownloadConfigurationEvent, LoadStatusChangeEvent, ThermostatIndoorTemperatureChangeEvent, ThermostatOutdoorTemperatureChangeEvent } from "./vantage-infusion-controller";
 import * as xml2json from 'xml2json'
@@ -220,6 +221,8 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
           this.accessoriesDict[response.item.VID] = new VantageFan(hap, this.log, name, response.item.VID, this.vantageController);
         } else if (loadType == "switch") {
           this.accessoriesDict[response.item.VID] = new VantageSwitch(hap, this.log, name, response.item.VID, this.vantageController);
+        } else if (loadType == "outlet") {
+          this.accessoriesDict[response.item.VID] = new VantageOutlet(hap, this.log, name, response.item.VID, this.vantageController);
         } else if (loadType == "dimmer") {
           this.accessoriesDict[response.item.VID] = new VantageDimmer(hap, this.log, name, response.item.VID, this.vantageController, loadType);
         } else {

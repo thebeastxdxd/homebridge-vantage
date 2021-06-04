@@ -22,11 +22,11 @@ in the config.json you can add `vidMapping`:
     {
         ...under platfrom
         "vidMapping": {
-            "vid": {"Name": "hi", "Type": "fan | switch"}
+            "vid": {"Name": "hi", "Type": "fan | switch | outlet"}
         }
     }
 ```
-The only 2 Types supported right now are fan and switch, which are basically the same thing,
+The only 3 Types supported right now are: fan, switch, and outlet. Which are all basically the same thing,
 the only difference is the way they show up in HomeKit.
 
 ### whitelist
