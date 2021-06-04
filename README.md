@@ -26,6 +26,7 @@ in the config.json you can add `vidMapping`:
         }
     }
 ```
+Both `Name` and `Type` are optional.
 The only 3 Types supported right now are: fan, switch, and outlet. Which are all basically the same thing,
 the only difference is the way they show up in HomeKit.
 

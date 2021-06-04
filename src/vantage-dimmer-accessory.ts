@@ -7,6 +7,8 @@ import {
   Logging,
   Service,
   CharacteristicEventTypes,
+  HAPStatus,
+  HapStatusError,
 } from "homebridge";
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
@@ -25,7 +27,6 @@ export class VantageDimmer implements AccessoryPlugin {
   private loadType: string;
   private dimmerRequestTimer: any;
 
-  // This property must be existent!!
   name: string;
 
   private readonly lightService: Service;
@@ -60,7 +61,7 @@ export class VantageDimmer implements AccessoryPlugin {
     this.lightService.getCharacteristic(this.hap.Characteristic.On)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         this.log.debug(`Dimmer ${this.name} get state: ${this.lightOn ? "ON" : "OFF"}`);
-        callback(undefined, this.lightOn);
+        callback(HAPStatus.SUCCESS, this.lightOn);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`Dimmer ${this.name} set state: ${value ? "ON" : "OFF"}`);
@@ -91,13 +92,14 @@ export class VantageDimmer implements AccessoryPlugin {
     this.lightService.getCharacteristic(this.hap.Characteristic.Brightness)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         this.log.debug(`Dimmer ${this.name} get brightness state: ${this.brightness}`);
-        callback(undefined, this.brightness);
+        callback(HAPStatus.SUCCESS, this.brightness);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`Dimmer ${this.name} set brightness state: ${value}`);
         this.brightness = value as number;
         this.lightOn = this.brightness > 0 ? true : false;
 
+        // a simple debouncing mechanism
         if (this.dimmerRequestTimer == undefined) {
           this.dispatchDimmerRequest();
 
@@ -117,7 +119,7 @@ export class VantageDimmer implements AccessoryPlugin {
   addRGBLightService() {
     this.lightService.getCharacteristic(this.hap.Characteristic.Saturation)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
-        callback(null, this.saturation);
+        callback(HAPStatus.SUCCESS, this.saturation);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.lightOn = true;
@@ -128,7 +130,7 @@ export class VantageDimmer implements AccessoryPlugin {
 
     this.lightService.getCharacteristic(this.hap.Characteristic.Hue)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
-        callback(null, this.hue);
+        callback(HAPStatus.SUCCESS, this.hue);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.lightOn = true;
@@ -139,12 +141,6 @@ export class VantageDimmer implements AccessoryPlugin {
   }
 
 
-  /*
-   * this is called by the platfrom, whenever a loadStatusChange occures for this vid.
-   * NOTE: When changing the value vai home we send a command to the VantageController. 
-   *       This will return a loadStatusChange, but we already changed the values, meaning the same value change happens twice.
-   *       This is ineffiecent but shouldn't make any problems. We do this so we can remove the delay when using home.
-   */
   loadStatusChange(value: number) {
     this.log.debug(`Dimmer loadStatusChange (VID=${this.vid}, Name=${this.name}, Bri=${value}`);
     this.brightness = value;
@@ -158,18 +154,10 @@ export class VantageDimmer implements AccessoryPlugin {
   }
 
 
-  /*
-   * This method is optional to implement. It is called when HomeKit ask to identify the accessory.
-   * Typical this only ever happens at the pairing process.
-   */
   identify(): void {
     this.log.info("Identify!");
   }
 
-  /*
-   * This method is called directly after creation of this instance.
-   * It should return all services which should be added to the accessory.
-   */
   getServices(): Service[] {
     return [
       this.informationService,

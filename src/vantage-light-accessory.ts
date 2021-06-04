@@ -7,6 +7,7 @@ import {
   Logging,
   Service,
   CharacteristicEventTypes,
+  HAPStatus,
 } from "homebridge";
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
@@ -52,7 +53,7 @@ export class VantageLight implements AccessoryPlugin {
     this.lightService.getCharacteristic(this.hap.Characteristic.On)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         this.log.debug(`lightbulb ${this.name} get state: ${this.lightOn ? "ON" : "OFF"}`);
-        callback(undefined, this.lightOn);
+        callback(HAPStatus.SUCCESS, this.lightOn);
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         this.log.debug(`lightbulb ${this.name} set state: ${value ? "ON" : "OFF"}`);
