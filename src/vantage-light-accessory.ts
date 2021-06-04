@@ -12,7 +12,16 @@ import {
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
 
-export class VantageLight implements AccessoryPlugin {
+export interface VantageLoadObjectInterface {
+  loadStatusChange(value: number) : void;
+}
+
+export function isVantageLoadObject(arg: any) : arg is VantageLoadObjectInterface {
+  return arg.loadStatusChange !== undefined;
+
+}
+
+export class VantageLight implements AccessoryPlugin, VantageLoadObjectInterface {
 
   private readonly log: Logging;
   private hap: HAP;
@@ -21,7 +30,6 @@ export class VantageLight implements AccessoryPlugin {
   private controller: VantageInfusionController;
   private lightOn = false;
   private brightness: number;
-
 
   // This property must be existent!!
   name: string;
