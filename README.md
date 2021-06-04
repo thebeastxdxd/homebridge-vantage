@@ -15,17 +15,20 @@ I have a lot of lights in my house (around 250), and the limit for a bridge (and
 this is annoying. still on my TOOD list to solve this.
 
 ## Some new features
-### vid to name mappings
+### vid mappings
 The lights in my house were really badly named and I didn't want to change it everytime I reset homebridge.
-in the config.json you can add nameMapping:
+in the config.json you can add `vidMapping`:
 ```
     {
         ...under platfrom
-        "nameMapping": {
-            "vid": "name"
+        "vidMapping": {
+            "vid": {"Name": "hi", "Type": "fan | switch | outlet"}
         }
     }
 ```
+Both `Name` and `Type` are optional.
+The only 3 Types supported right now are: fan, switch, and outlet. Which are all basically the same thing,
+the only difference is the way they show up in HomeKit.
 
 ### whitelist
 this feature allows you to only add the vids you want:
@@ -78,6 +81,14 @@ If you are interested in adding your own features or are just curious about how 
 3. Type `help` it should print all of the available commands.
 4. [a very useful link](https://forum.roomieremote.com/t/vantage-controls-infusion-lighting-system/1097/3)
 5. Enjoy!
+
+## TODO
+1. My house didn't have the blinds configured as blinds... they were configured as normal Loads. Meaning 
+   it acted like a switch, I had a VID that made the blinds go up or stop and a VID that made them go down and stop.
+   But! Vantage has the option to configure Blinds, if you have a Blind type in your house you can definitely add support.
+2. There is a bug when running 2 child bridges for the first time, they both try to download the configuration from vantage.
+   Its a race, what I do is just wait for one of them to finish downloading the configuration and reset homebridge.
+   Next time they start they will have the saved config and just read from the file.
 
 # OLD README VantagePlugin
 VantageControls InFusion plugin for homebridge: https://github.com/nfarina/homebridge

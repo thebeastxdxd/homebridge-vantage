@@ -220,6 +220,7 @@ export class VantageInfusionController extends EventEmitter {
       this.log.debug("parsing interfaces");
       let databaseInterfaces = database.IIntrospection.GetInterfaces.return.Interface;
       databaseInterfaces.forEach((tmpInterface: any) => {
+        this.log.debug(`interface ${tmpInterface.Name} ID ${tmpInterface.IID}`);
         this.interfaces[tmpInterface.Name] = tmpInterface.IID;
       });
     }
@@ -242,5 +243,4 @@ export class VantageInfusionController extends EventEmitter {
       })
     }
   }
-
 }

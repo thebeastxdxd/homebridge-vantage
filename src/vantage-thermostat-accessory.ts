@@ -7,7 +7,8 @@ import {
   Logging,
   Service,
   CharacteristicEventTypes,
-  Characteristic
+  Characteristic,
+  HAPStatus
 } from "homebridge";
 import { on } from "process";
 
@@ -22,8 +23,6 @@ export class VantageThermostat implements AccessoryPlugin {
   private controller: VantageInfusionController;
   private temperature: number;
 
-
-  // This property must be existent!!
   name: string;
 
   private readonly temperatureSensorService: Service;
@@ -41,7 +40,7 @@ export class VantageThermostat implements AccessoryPlugin {
     this.temperatureSensorService.getCharacteristic(hap.Characteristic.CurrentTemperature)
     .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         this.log.debug(`thermostat ${this.name} get temperature: ${this.temperature}`);
-        callback(null, this.temperature);
+        callback(HAPStatus.SUCCESS, this.temperature);
 
     })
     .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
@@ -64,20 +63,10 @@ export class VantageThermostat implements AccessoryPlugin {
     this.temperatureSensorService.getCharacteristic(this.hap.Characteristic.CurrentTemperature).setValue(value);
   }
 
-
-  /*
-   * This method is optional to implement. It is called when HomeKit ask to identify the accessory.
-   * Typical this only ever happens at the pairing process.
-   */
   identify(): void {
     this.log.info("Identify!");
   }
 
-
-  /*
-   * This method is called directly after creation of this instance.
-   * It should return all services which should be added to the accessory.
-   */
   getServices(): Service[] {
     return [
       this.informationService,
