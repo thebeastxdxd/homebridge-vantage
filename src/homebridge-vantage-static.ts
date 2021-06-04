@@ -87,7 +87,6 @@ class VantageStaticPlatform implements StaticPlatformPlugin {
   }
 
   loadStatusChangeCallback(vid: string, value: number) {
-    // TODO: this needs to work with dimmer
     if (this.accessoriesDict[vid] && this.accessoriesDict[vid] instanceof VantageLight) {
       const accessory = this.accessoriesDict[vid] as VantageLight;
       accessory.loadStatusChange(value);
