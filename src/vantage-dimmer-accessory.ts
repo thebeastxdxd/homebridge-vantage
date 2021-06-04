@@ -12,8 +12,9 @@ import {
 } from "homebridge";
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
+import { VantageLoadObjectInterface} from "./vantage-light-accessory";
 
-export class VantageDimmer implements AccessoryPlugin {
+export class VantageDimmer implements AccessoryPlugin, VantageLoadObjectInterface {
 
   private readonly log: Logging;
   private hap: HAP;

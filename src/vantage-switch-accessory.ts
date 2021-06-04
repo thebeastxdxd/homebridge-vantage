@@ -11,8 +11,9 @@ import {
 } from "homebridge";
 
 import { VantageInfusionController } from "./vantage-infusion-controller";
+import { VantageLoadObjectInterface} from "./vantage-light-accessory";
 
-export class VantageSwitch implements AccessoryPlugin {
+export class VantageSwitch implements AccessoryPlugin, VantageLoadObjectInterface {
 
   private readonly log: Logging;
   private hap: HAP;
